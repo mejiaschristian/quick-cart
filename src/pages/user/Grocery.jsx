@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { Modal } from "bootstrap";
 import { useAuth } from "../../context/useAuth";
 import GroceryCardItem from "../../components/GroceryCardItem.jsx";
 import ItemDetailsModal from "../../components/ItemDetailsModal.jsx";
+import CategoryCardItem from "../../components/CategoryCardItem.jsx";
 
 function Grocery() {
     const { user } = useAuth();
     const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [toast, setToast] = useState(null);
 
     useEffect(() => {
         fetch("http://localhost/quickcart-api/get_products.php", {
@@ -32,12 +35,33 @@ function Grocery() {
             });
     }, []);
 
+    useEffect(() => {
+        fetch("http://localhost/quickcart-api/categories.php", {
+            credentials: "include",
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Server error");
+                return res.json();
+            })
+            .then((data) => {
+                if (!data.success) {
+                    throw new Error(data.error || "Failed to load categories");
+                }
+                setCategories(data.categories ?? []);
+            })
+            .catch(() => {
+                setError("Failed to load categories");
+            });
+    }, []);
+
     const openDetails = (product) => {
         setSelectedProduct(product);
-        const modalElement = document.getElementById("itemDetailsModal");
-        if (modalElement) {
-            Modal.getOrCreateInstance(modalElement).show();
-        }
+        setModalOpen(true);
+    };
+
+    const closeDetails = () => {
+        setSelectedProduct(null);
+        setModalOpen(false);
     };
 
     const addToCart = (product, quantity) => {
@@ -60,6 +84,16 @@ function Grocery() {
         }
 
         localStorage.setItem("quickcart_cart", JSON.stringify(cart));
+
+        setToast({
+            title: "Added to cart",
+            message: `${product.name} x ${quantity}`,
+        });
+        window.setTimeout(() => {
+            setToast(null);
+        }, 2600);
+
+        closeDetails();
     };
 
     if (loading) return <p>Loading products...</p>;
@@ -71,12 +105,22 @@ function Grocery() {
                 <p className="text-success text-uppercase fw-bold small mb-1">
                     Grocery Items
                 </p>
-                <h1 className="h2 mb-2">
-                    Welcome, {user?.full_name || "User"}!
-                </h1>
+                <h2 className="mb-2">Welcome, {user?.full_name || "User"}!</h2>
                 <p className="text-body-secondary mb-0">
                     Browse our selection of fresh groceries and essentials.
                 </p>
+            </div>
+
+            <div className="mb-2">
+                <h2>All Categories</h2>
+                <div className="d-flex">
+                    {categories.map((category) => (
+                        <CategoryCardItem
+                            key={category.category_id}
+                            category={category}
+                        />
+                    ))}
+                </div>
             </div>
 
             <div className="grocery-grid">
@@ -91,9 +135,26 @@ function Grocery() {
 
             <ItemDetailsModal
                 product={selectedProduct}
-                onClose={() => setSelectedProduct(null)}
+                modalOpen={modalOpen}
+                onClose={closeDetails}
                 onAddToCart={addToCart}
             />
+
+            {toast && (
+                <div className="toast-wrap">
+                    <div className="quick-toast">
+                        <div className="quick-toast-icon">✓</div>
+                        <div>
+                            <div className="quick-toast-title">
+                                {toast.title}
+                            </div>
+                            <div className="quick-toast-message">
+                                {toast.message}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

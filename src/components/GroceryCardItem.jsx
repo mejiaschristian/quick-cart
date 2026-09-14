@@ -32,19 +32,14 @@ function GroceryCardItem({ product, onSelect }) {
 
                 <div className="grocery-card-body">
                     <div className="grocery-card-top">
-                        <div>
-                            <h4 className="grocery-card-title">
-                                {product?.name ?? "Fresh Item"}
-                            </h4>
-                            <p className="grocery-card-unit">
-                                {product?.unit ?? "unit"}
-                            </p>
-                        </div>
+                        <h4 className="grocery-card-title">
+                            {product?.name ?? "Fresh Item"}
+                        </h4>
                         <span className="grocery-card-price">
-                            ₱{Number(product?.price ?? 0).toFixed(2)}
+                            ₱{Number(product?.price ?? 0).toFixed(2)} {" "}
+                            <span className="text-muted">/ {product?.unit ?? "unit"}</span>
                         </span>
                     </div>
-
                     <p className="grocery-card-description">
                         {product?.description?.slice(0, 64) ||
                             "Fresh grocery essentials selected for your kitchen."}
@@ -56,7 +51,6 @@ function GroceryCardItem({ product, onSelect }) {
                         >
                             {stockStatus}
                         </span>
-                        <span className="grocery-card-arrow">→</span>
                     </div>
                 </div>
             </button>
