@@ -25,8 +25,10 @@ function GoogleSignIn() {
                 console.log("Google Auth Response:", data); // Debug log
 
                 if (data.success) {
-                    await refreshUser();
-                    navigate("/", { replace: true });
+                    const nextUser = await refreshUser();
+                    navigate(nextUser?.role === "admin" ? "/admin" : "/", {
+                        replace: true,
+                    });
                 } else {
                     console.error(
                         "Google login failed on backend:",

@@ -2,10 +2,16 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
-import Grocery from "./pages/Grocery.jsx";
-import Cart from "./pages/Cart.jsx";
-import About from "./pages/About.jsx";
-import Profile from "./pages/Profile.jsx";
+import AdminApp from "./AdminApp.jsx";
+import Grocery from "./pages/user/Grocery.jsx";
+import Cart from "./pages/user/Cart.jsx";
+import About from "./pages/user/About.jsx";
+import Profile from "./pages/user/Profile.jsx";
+import Dashboard from "./pages/admin/Dashboard.jsx";
+import OrderList from "./pages/admin/OrderList.jsx";
+import Inventory from "./pages/admin/Inventory.jsx";
+import CustomerAccounts from "./pages/admin/CustomerAccounts.jsx";
+import AdminAccounts from "./pages/admin/AdminAccounts.jsx";
 import Login from "./Login.jsx";
 import Signup from "./Signup.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -38,6 +44,36 @@ const router = createBrowserRouter([
             {
                 path: "profile",
                 element: <Profile />,
+            },
+        ],
+    },
+    {
+        path: "/admin",
+        element: (
+            <ProtectedRoute>
+                <AdminApp />
+            </ProtectedRoute>
+        ),
+        children: [
+            {
+                index: true,
+                element: <Dashboard />,
+            },
+            {
+                path: "orders",
+                element: <OrderList />,
+            },
+            {
+                path: "inventory",
+                element: <Inventory />,
+            },
+            {
+                path: "customers",
+                element: <CustomerAccounts />,
+            },
+            {
+                path: "admins",
+                element: <AdminAccounts />,
             },
         ],
     },

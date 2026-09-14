@@ -12,9 +12,12 @@ export function AuthProvider({ children }) {
                 { credentials: "include" },
             );
             const data = await response.json();
-            setUser(data.loggedIn ? data.user : null);
+            const nextUser = data.loggedIn ? data.user : null;
+            setUser(nextUser);
+            return nextUser;
         } catch {
             setUser(null);
+            return null;
         } finally {
             setLoading(false);
         }
@@ -25,7 +28,10 @@ export function AuthProvider({ children }) {
             credentials: "include",
         })
             .then((response) => response.json())
-            .then((data) => setUser(data.loggedIn ? data.user : null))
+            .then((data) => {
+                const nextUser = data.loggedIn ? data.user : null;
+                setUser(nextUser);
+            })
             .catch(() => setUser(null))
             .finally(() => setLoading(false));
     }, []);

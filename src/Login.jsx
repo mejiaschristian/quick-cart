@@ -32,8 +32,10 @@ function Login() {
             const data = await res.json();
 
             if (data.success) {
-                await refreshUser();
-                navigate("/", { replace: true });
+                const nextUser = await refreshUser();
+                navigate(nextUser?.role === "admin" ? "/admin" : "/", {
+                    replace: true,
+                });
             } else {
                 setError(data.error || "Login failed");
             }
