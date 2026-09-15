@@ -11,8 +11,14 @@ main {
     padding: 1rem;
 }
 
-.bg-orange {
-    background-color: #d35400;
+.category-card {
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(20, 67, 28, 0.08);
 }
 
 .grocery-grid {
@@ -27,9 +33,7 @@ main {
     border: 1px solid rgba(57, 149, 97, 0.1);
     box-shadow: 0 16px 40px rgba(20, 67, 28, 0.08);
     overflow: hidden;
-    transition:
-        transform 280ms ease,
-        box-shadow 280ms ease;
+    transition: all 0.3s ease;
 }
 
 .grocery-card:hover {
@@ -91,14 +95,6 @@ main {
     color: #123c23;
 }
 
-.grocery-card-unit {
-    font-size: 0.76rem;
-    color: #6d826b;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
 .grocery-card-price {
     font-size: 1rem;
     font-weight: 900;
@@ -128,59 +124,6 @@ main {
     background: #eefaf2;
     padding: 0.38rem 0.6rem;
     border-radius: 999px;
-}
-
-.grocery-card-arrow {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    background: #173b22;
-    font-size: 1.1rem;
-}
-
-.toast-wrap {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 1200;
-}
-
-.quick-toast {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: min(340px, calc(100vw - 48px));
-    padding: 0.95rem 1rem;
-    border-radius: 16px;
-    background: #173b22;
-    color: #fff;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
-}
-
-.quick-toast-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #a7e58f;
-    color: #173b22;
-    font-weight: 900;
-}
-
-.quick-toast-title {
-    font-weight: 900;
-    font-size: 0.9rem;
-}
-
-.quick-toast-message {
-    color: #d4f8d9;
-    font-size: 0.84rem;
 }
 
 .item-detail-modal .modal-content {
@@ -297,15 +240,6 @@ main {
     cursor: pointer;
 }
 
-.quantity-input {
-    width: 76px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid #dce5d7;
-    text-align: center;
-    font-weight: 800;
-}
-
 .detail-add {
     min-width: 180px;
     padding: 0.8rem 1.4rem;
@@ -413,81 +347,6 @@ main {
     width: 56px;
     height: 34px;
     font-size: 0.84rem;
-}
-
-.cart-fulfillment {
-    margin-top: 1rem;
-    padding: 1rem;
-    border-radius: 20px;
-    background: #fff;
-    border: 1px solid rgba(33, 111, 62, 0.08);
-    box-shadow: 0 12px 30px rgba(20, 67, 28, 0.06);
-}
-
-.cart-fulfillment-title,
-.delivery-address-title {
-    font-weight: 900;
-    color: #173b22;
-    font-size: 0.95rem;
-    margin-bottom: 0.75rem;
-}
-
-.cart-fulfillment-options {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.fulfillment-option {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-weight: 700;
-    color: #173b22;
-}
-
-.delivery-address-panel {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(33, 111, 62, 0.08);
-}
-
-.address-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.address-option {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.85rem;
-    border-radius: 14px;
-    border: 1px solid rgba(33, 111, 62, 0.1);
-    background: #f9fbf8;
-    color: #173b22;
-}
-
-.address-option strong {
-    display: block;
-}
-
-.address-line {
-    display: block;
-    font-size: 0.84rem;
-    color: #66776a;
-}
-
-.default-address {
-    display: inline-flex;
-    margin-top: 0.45rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 0.74rem;
-    border-radius: 999px;
-    background: #eaf8ee;
-    color: #17683b;
-    font-weight: 800;
 }
 
 .cart-fulfillment {

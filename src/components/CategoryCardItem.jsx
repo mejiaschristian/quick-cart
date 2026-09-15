@@ -1,21 +1,21 @@
-import React from "react";
-
 function CategoryCardItem({ category }) {
     return (
-        <div className="card text-center">
-            <div className="card-img-top">
+        <div className="category-card card text-center d-flex flex-row align-items-center justify-content-center">
+            <div className="card-img">
                 <img
                     src={
                         category.image_url ||
-                        "https://placehold.co/150x100?text=No+Image"
+                        "https://placehold.co/130x80?text=No+Image"
                     }
                     alt={category.name ?? "Category"}
                 />
             </div>
-            <h4 className="card-title">{category.name}</h4>
-            <small className="card-text text-muted">
-                {category.description}
-            </small>
+            <div className="container">
+                <p className="card-title fw-bold">{category.name}</p>
+                <small className="card-text text-muted">
+                    {category.description}
+                </small>
+            </div>
         </div>
     );
 }

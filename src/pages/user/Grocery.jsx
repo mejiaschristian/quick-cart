@@ -3,6 +3,7 @@ import { useAuth } from "../../context/useAuth";
 import GroceryCardItem from "../../components/GroceryCardItem.jsx";
 import ItemDetailsModal from "../../components/ItemDetailsModal.jsx";
 import CategoryCardItem from "../../components/CategoryCardItem.jsx";
+import AppToast from "../../components/Toast.jsx";
 
 function Grocery() {
     const { user } = useAuth();
@@ -11,7 +12,7 @@ function Grocery() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [quantity, setQuantity] = useState(1);
     const [toast, setToast] = useState(null);
 
     useEffect(() => {
@@ -56,12 +57,11 @@ function Grocery() {
 
     const openDetails = (product) => {
         setSelectedProduct(product);
-        setModalOpen(true);
+        setQuantity(1);
     };
 
     const closeDetails = () => {
         setSelectedProduct(null);
-        setModalOpen(false);
     };
 
     const addToCart = (product, quantity) => {
@@ -89,11 +89,6 @@ function Grocery() {
             title: "Added to cart",
             message: `${product.name} x ${quantity}`,
         });
-        window.setTimeout(() => {
-            setToast(null);
-        }, 2600);
-
-        closeDetails();
     };
 
     if (loading) return <p>Loading products...</p>;
@@ -111,9 +106,9 @@ function Grocery() {
                 </p>
             </div>
 
-            <div className="mb-2">
+            <div className="mb-4">
                 <h2>All Categories</h2>
-                <div className="d-flex">
+                <div className="d-flex gap-3">
                     {categories.map((category) => (
                         <CategoryCardItem
                             key={category.category_id}
@@ -135,26 +130,13 @@ function Grocery() {
 
             <ItemDetailsModal
                 product={selectedProduct}
-                modalOpen={modalOpen}
                 onClose={closeDetails}
+                quantity={quantity}
+                onQuantityChange={setQuantity}
                 onAddToCart={addToCart}
             />
 
-            {toast && (
-                <div className="toast-wrap">
-                    <div className="quick-toast">
-                        <div className="quick-toast-icon">✓</div>
-                        <div>
-                            <div className="quick-toast-title">
-                                {toast.title}
-                            </div>
-                            <div className="quick-toast-message">
-                                {toast.message}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AppToast toast={toast} onClose={() => setToast(null)} />
         </>
     );
 }

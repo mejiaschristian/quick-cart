@@ -13,6 +13,8 @@ function GroceryCardItem({ product, onSelect }) {
             <button
                 className="grocery-card-button"
                 type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#itemDetailsModal"
                 onClick={() => onSelect?.(product)}
                 aria-label={`Open details for ${product?.name ?? "grocery item"}`}
             >

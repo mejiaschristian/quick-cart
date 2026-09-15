@@ -9,14 +9,29 @@ function readCart() {
     }
 }
 
+function readCheckoutResult() {
+    return new URLSearchParams(window.location.search).get("checkout");
+}
+
 function Cart() {
-    const [items, setItems] = useState(readCart);
+    const [items, setItems] = useState(() =>
+        readCheckoutResult() === "success" ? [] : readCart(),
+    );
     const [fulfillmentType, setFulfillmentType] = useState("delivery");
     const [addresses, setAddresses] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState("");
     const [addressError, setAddressError] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("payrex");
-    const [checkoutMessage, setCheckoutMessage] = useState("");
+    const [checkoutMessage, setCheckoutMessage] = useState(() => {
+        const checkoutResult = readCheckoutResult();
+        if (checkoutResult === "success") {
+            return "Payment received! Your order is being processed.";
+        }
+        if (checkoutResult === "cancel") {
+            return "Checkout was cancelled. Your cart is still here.";
+        }
+        return "";
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -64,12 +79,6 @@ function Cart() {
 
         if (checkoutResult === "success") {
             localStorage.removeItem("quickcart_cart");
-            setItems([]);
-            setCheckoutMessage(
-                "Payment received! Your order is being processed.",
-            );
-        } else if (checkoutResult === "cancel") {
-            setCheckoutMessage("Checkout was cancelled. Your cart is still here.");
         }
 
         if (checkoutResult) {
@@ -120,7 +129,9 @@ function Cart() {
         }
 
         if (fulfillmentType === "delivery" && !selectedAddressId) {
-            setCheckoutMessage("Please choose a delivery address before checking out.");
+            setCheckoutMessage(
+                "Please choose a delivery address before checking out.",
+            );
             return;
         }
 
@@ -151,7 +162,9 @@ function Cart() {
                 return; // leaving the page — don't clear isSubmitting
             }
 
-            setCheckoutMessage(data.error || "Checkout failed. Please try again.");
+            setCheckoutMessage(
+                data.error || "Checkout failed. Please try again.",
+            );
         } catch {
             setCheckoutMessage("Could not reach the server. Please try again.");
         }
@@ -406,22 +419,32 @@ function Cart() {
                                             setPaymentMethod("payrex")
                                         }
                                     />
-                                    <span>PayRex</span>
+                                    <span>
+                                        <img
+                                            className="img-fluid"
+                                            src="/payrex-social-card.png"
+                                            width="180"
+                                            alt="PayRex"
+                                        />
+                                    </span>
                                 </label>
-                                <label className="payment-option">
-                                    <input
-                                        type="radio"
-                                        name="payment_method"
-                                        value="cash_pickup"
-                                        checked={
-                                            paymentMethod === "cash_pickup"
-                                        }
-                                        onChange={() =>
-                                            setPaymentMethod("cash_pickup")
-                                        }
-                                    />
-                                    <span>Cash on pickup</span>
-                                </label>
+
+                                {fulfillmentType === "pickup" && (
+                                    <label className="payment-option">
+                                        <input
+                                            type="radio"
+                                            name="payment_method"
+                                            value="cash_pickup"
+                                            checked={
+                                                paymentMethod === "cash_pickup"
+                                            }
+                                            onChange={() =>
+                                                setPaymentMethod("cash_pickup")
+                                            }
+                                        />
+                                        <span>Cash on pickup</span>
+                                    </label>
+                                )}
                             </div>
 
                             {checkoutMessage && (

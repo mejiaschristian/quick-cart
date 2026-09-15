@@ -44,6 +44,11 @@ export default function App() {
                             </Link>
                         </li>
                         <li className="nav-item">
+                            <Link className="nav-link" to="/orders">
+                                Orders
+                            </Link>
+                        </li>
+                        <li className="nav-item">
                             <Link className="nav-link" to="/about">
                                 About
                             </Link>
@@ -61,7 +66,9 @@ export default function App() {
                                     alt="userIcon"
                                     width="25"
                                 />
-                                <p className="m-0 p-0">{user?.full_name || "User"}</p>
+                                <p className="m-0 p-0">
+                                    {user?.full_name || "User"}
+                                </p>
                             </Link>
                         </li>
                         <li className="nav-item">

@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import AdminApp from "./AdminApp.jsx";
 import Grocery from "./pages/user/Grocery.jsx";
 import Cart from "./pages/user/Cart.jsx";
+import Orders from "./pages/user/Orders.jsx";
 import About from "./pages/user/About.jsx";
 import Profile from "./pages/user/Profile.jsx";
 import Dashboard from "./pages/admin/Dashboard.jsx";
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
             {
                 path: "cart",
                 element: <Cart />,
+            },
+            {
+                path: "orders",
+                element: <Orders />,
             },
             {
                 path: "about",
