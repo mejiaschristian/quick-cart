@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { createPayRexPaymentIntent } from "../../payment/create_payment_intent.js";
 
 function readCart() {
     try {
@@ -18,6 +17,7 @@ function Cart() {
     const [addressError, setAddressError] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("payrex");
     const [checkoutMessage, setCheckoutMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const loadAddresses = async () => {
@@ -54,6 +54,36 @@ function Cart() {
         loadAddresses();
     }, []);
 
+    // Handle the redirect PayRex sends the customer back to after checkout.
+    // The webhook (server-to-server) is the source of truth for whether the
+    // payment actually succeeded — this is just for showing the right message
+    // and clearing a cart that's now been paid for.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const checkoutResult = params.get("checkout");
+
+        if (checkoutResult === "success") {
+            localStorage.removeItem("quickcart_cart");
+            setItems([]);
+            setCheckoutMessage(
+                "Payment received! Your order is being processed.",
+            );
+        } else if (checkoutResult === "cancel") {
+            setCheckoutMessage("Checkout was cancelled. Your cart is still here.");
+        }
+
+        if (checkoutResult) {
+            params.delete("checkout");
+            params.delete("order");
+            const newSearch = params.toString();
+            window.history.replaceState(
+                {},
+                "",
+                window.location.pathname + (newSearch ? `?${newSearch}` : ""),
+            );
+        }
+    }, []);
+
     const subtotal = useMemo(
         () =>
             items.reduce(
@@ -80,28 +110,53 @@ function Cart() {
     };
 
     const handleCheckout = async () => {
-        if (paymentMethod === "payrex") {
-            try {
-                const payload = {
-                    cart: items,
-                    fulfillmentType,
-                    selectedAddressId,
-                    currency: "PHP",
-                };
+        if (isSubmitting) return; // avoid double-clicks creating duplicate pending orders
 
-                const url = await createPayRexPaymentIntent(payload);
-                if (url) {
-                    window.location.href = url;
-                }
-            } catch (error) {
-                setCheckoutMessage(
-                    error?.message || "Unable to start PayRex checkout.",
-                );
-            }
+        setCheckoutMessage("");
+
+        if (paymentMethod !== "payrex") {
+            setCheckoutMessage("Cash on pickup selected.");
             return;
         }
 
-        setCheckoutMessage("Cash on pickup selected.");
+        if (fulfillmentType === "delivery" && !selectedAddressId) {
+            setCheckoutMessage("Please choose a delivery address before checking out.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const res = await fetch(
+                "http://localhost/quickcart-api/payrex_create_checkout.php",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        cart: items.map((i) => ({
+                            product_id: i.product_id,
+                            quantity: i.quantity,
+                        })),
+                        fulfillmentType, // "delivery" | "pickup"
+                        selectedAddressId, // required for delivery
+                    }),
+                },
+            );
+
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.href = data.url;
+                return; // leaving the page — don't clear isSubmitting
+            }
+
+            setCheckoutMessage(data.error || "Checkout failed. Please try again.");
+        } catch {
+            setCheckoutMessage("Could not reach the server. Please try again.");
+        }
+
+        setIsSubmitting(false);
     };
 
     return (
@@ -118,6 +173,11 @@ function Cart() {
                     <div className="empty-cart-icon">🛒</div>
                     <h3>Your cart is empty</h3>
                     <p>Add fresh groceries from the grocery page.</p>
+                    {checkoutMessage && (
+                        <div className="checkout-message mt-3">
+                            {checkoutMessage}
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="row g-4">
@@ -374,10 +434,13 @@ function Cart() {
                                 className="btn btn-success w-100 checkout-btn"
                                 type="button"
                                 onClick={handleCheckout}
+                                disabled={isSubmitting}
                             >
-                                {paymentMethod === "payrex"
-                                    ? "Checkout with PayRex"
-                                    : "Checkout with Cash on Pickup"}
+                                {isSubmitting
+                                    ? "Processing..."
+                                    : paymentMethod === "payrex"
+                                      ? "Checkout with PayRex"
+                                      : "Checkout with Cash on Pickup"}
                             </button>
                         </aside>
                     </div>

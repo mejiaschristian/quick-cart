@@ -177,18 +177,6 @@ function Profile() {
                     />
                 </label>
 
-                <label className="form-label fw-semibold">
-                    Phone
-                    <input
-                        className="form-control mt-2"
-                        name="phone"
-                        type="tel"
-                        value={profile.phone}
-                        onChange={handleChange}
-                        placeholder="e.g. 09123456789"
-                    />
-                </label>
-
                 <div className="mb-3">
                     <div className="d-flex align-items-center justify-content-between gap-3">
                         <span className="form-label fw-semibold mb-0">
