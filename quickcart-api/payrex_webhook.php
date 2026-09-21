@@ -4,39 +4,61 @@
 // no session_start() or CORS handling — auth is the signature check below.
 
 require __DIR__ . "/db_connection.php";
-require __DIR__ . "/config.php"; // <- put putenv() calls for local secrets here
+require __DIR__ . "/config.php";
 
 $webhookSecret = getenv("PAYREX_WEBHOOK_SECRET_KEY");
 $rawPayload = file_get_contents("php://input");
-$signatureHeader = $_SERVER['HTTP_PAYREX_SIGNATURE'] ?? '';
 
-if (!$webhookSecret || !$signatureHeader) {
+if (!$webhookSecret || $rawPayload === false || $rawPayload === "") {
     http_response_code(400);
     exit;
 }
 
-// Header looks like: t=1496734175,te=<test-sig>,li=<live-sig>
+$signatureHeader = $_SERVER['HTTP_PAYREX_SIGNATURE']
+    ?? $_SERVER['HTTP_X_PAYREX_SIGNATURE']
+    ?? $_SERVER['HTTP_PAYREX_WEBHOOK_SIGNATURE']
+    ?? $_SERVER['HTTP_X_PAYREX_WEBHOOK_SIGNATURE']
+    ?? '';
+
+if (!$signatureHeader) {
+    http_response_code(400);
+    exit;
+}
+
 $parts = [];
 foreach (explode(",", $signatureHeader) as $pair) {
+    $pair = trim((string)$pair);
+    if ($pair === "") {
+        continue;
+    }
+
     [$key, $value] = array_pad(explode("=", $pair, 2), 2, null);
     if ($key !== null) {
-        $parts[$key] = $value;
+        $parts[trim((string)$key)] = trim((string)($value ?? ''));
     }
 }
 
-$timestamp = $parts['t'] ?? null;
-$testSig = $parts['te'] ?? null;
-$liveSig = $parts['li'] ?? null;
+$timestamp = $parts['t'] ?? $parts['timestamp'] ?? null;
+$validSignatures = array_values(array_filter([
+    $parts['te'] ?? null,
+    $parts['li'] ?? null,
+    $parts['v1'] ?? null,
+    $parts['signature'] ?? null,
+], fn($value) => $value !== null && $value !== ''));
 
-if (!$timestamp || (!$testSig && !$liveSig)) {
+if (!$timestamp || empty($validSignatures)) {
     http_response_code(400);
     exit;
 }
 
 $expectedSig = hash_hmac("sha256", $timestamp . "." . $rawPayload, $webhookSecret);
-
-$isValid = ($testSig && hash_equals($expectedSig, $testSig))
-    || ($liveSig && hash_equals($expectedSig, $liveSig));
+$isValid = false;
+foreach ($validSignatures as $candidate) {
+    if (hash_equals($expectedSig, $candidate)) {
+        $isValid = true;
+        break;
+    }
+}
 
 if (!$isValid) {
     http_response_code(400);
@@ -44,56 +66,96 @@ if (!$isValid) {
 }
 
 $event = json_decode($rawPayload, true);
-$eventType = $event['type'] ?? '';
+if (!is_array($event)) {
+    http_response_code(400);
+    exit;
+}
 
-// payment_intent.succeeded is the event documented by the PayRex SDK. The
-// checkout-session event is kept as a compatibility branch for configured
-// webhooks that listen to checkout session completion.
-$successEvents = ['payment_intent.succeeded', 'checkout_session.completed'];
-$failureEvents = ['payment_intent.payment_failed', 'checkout_session.expired'];
+$eventType = strtolower((string)($event['type'] ?? $event['event'] ?? $event['name'] ?? ''));
+$successEvents = [
+    'payment_intent.succeeded',
+    'payment.succeeded',
+    'payment.completed',
+    'payment_intent.completed',
+    'checkout_session.completed',
+    'checkout_session.success',
+    'checkout_session.paid',
+];
+$failureEvents = [
+    'payment_intent.payment_failed',
+    'payment.failed',
+    'checkout_session.expired',
+    'checkout_session.cancelled',
+];
 
 try {
-    // PayRex event payloads put the resource in data.data. Older sample code
-    // used data.resource, so keep that fallback for previously captured events.
     $resource = $event['data']['data']
         ?? $event['data']['resource']
         ?? $event['data']
+        ?? $event['resource']
         ?? [];
 
     if (isset($resource['data']) && is_array($resource['data'])) {
         $resource = $resource['data'];
     }
 
-    $metadata = $resource['metadata']
-        ?? $resource['payment_intent']['metadata']
-        ?? [];
+    $metadata = [];
+    if (isset($resource['metadata']) && is_array($resource['metadata'])) {
+        $metadata = $resource['metadata'];
+    } elseif (isset($resource['payment_intent']['metadata']) && is_array($resource['payment_intent']['metadata'])) {
+        $metadata = $resource['payment_intent']['metadata'];
+    } elseif (isset($event['metadata']) && is_array($event['metadata'])) {
+        $metadata = $event['metadata'];
+    } elseif (isset($event['data']['metadata']) && is_array($event['data']['metadata'])) {
+        $metadata = $event['data']['metadata'];
+    }
+
     $transactionId = (int)($metadata['transaction_id'] ?? 0);
 
     if ($transactionId <= 0) {
-        error_log("PayRex webhook ignored: transaction_id metadata missing. Event type: " . $eventType);
-        http_response_code(200); // acknowledge so PayRex doesn't retry forever
-        echo json_encode(["received" => true, "note" => "no transaction_id in metadata"]);
+        $sessionId = $resource['id'] ?? $event['id'] ?? $event['data']['id'] ?? null;
+
+        if ($sessionId) {
+            $sessionLookup = $pdo->prepare(
+                "SELECT transaction_id FROM payments WHERE payrex_session_id = ? LIMIT 1"
+            );
+            $sessionLookup->execute([$sessionId]);
+            $sessionMatch = $sessionLookup->fetch();
+
+            if ($sessionMatch) {
+                $transactionId = (int)$sessionMatch['transaction_id'];
+            }
+        }
+    }
+
+    if ($transactionId <= 0) {
+        error_log("PayRex webhook ignored: no transaction match. Event type: " . $eventType);
+        http_response_code(200);
+        echo json_encode(["received" => true, "note" => "no transaction_id matched"]);
         exit;
     }
 
     if (in_array($eventType, $successEvents, true)) {
         $pdo->beginTransaction();
 
-        // Lock the row so a duplicate webhook delivery can't double-deduct stock
-        $check = $pdo->prepare("SELECT payment_status FROM payments WHERE transaction_id = ? FOR UPDATE");
+        $check = $pdo->prepare(
+            "SELECT payment_status FROM payments WHERE transaction_id = ? FOR UPDATE"
+        );
         $check->execute([$transactionId]);
         $payment = $check->fetch();
 
-        if ($payment && $payment['payment_status'] === 'pending') {
-            $paymentReference = $resource['id'] ?? $event['id'] ?? null;
+        if ($payment) {
+            $paymentReference = $resource['id'] ?? $event['id'] ?? $payment['payment_reference'] ?? null;
 
             $pdo->prepare(
-                "UPDATE payments SET payment_status = 'paid', payment_reference = ?, paid_at = CURRENT_TIMESTAMP
+                "UPDATE payments
+                 SET payment_status = 'paid', payment_reference = ?, paid_at = CURRENT_TIMESTAMP
                  WHERE transaction_id = ?"
             )->execute([$paymentReference, $transactionId]);
 
             $pdo->prepare(
-                "UPDATE transactions SET order_status = 'processing' WHERE transaction_id = ?"
+                "UPDATE transactions SET order_status = 'processing'
+                 WHERE transaction_id = ? AND order_status IN ('pending', 'processing')"
             )->execute([$transactionId]);
 
             $items = $pdo->prepare(
@@ -105,7 +167,6 @@ try {
                 $remainingToDeduct = (int)$item['quantity'];
                 $productId = (int)$item['product_id'];
 
-                // FIFO: use up batches expiring soonest first (oldest stock first)
                 $batches = $pdo->prepare(
                     "SELECT batch_id, quantity_remaining FROM stock_batches
                      WHERE product_id = ? AND quantity_remaining > 0
@@ -138,20 +199,23 @@ try {
         $pdo->commit();
     } elseif (in_array($eventType, $failureEvents, true)) {
         $pdo->prepare(
-            "UPDATE payments SET payment_status = 'failed' WHERE transaction_id = ? AND payment_status = 'pending'"
+            "UPDATE payments SET payment_status = 'failed'
+             WHERE transaction_id = ? AND payment_status = 'pending'"
         )->execute([$transactionId]);
 
         $pdo->prepare(
-            "UPDATE transactions SET order_status = 'cancelled' WHERE transaction_id = ? AND order_status = 'pending'"
+            "UPDATE transactions SET order_status = 'cancelled'
+             WHERE transaction_id = ? AND order_status IN ('pending', 'processing')"
         )->execute([$transactionId]);
     }
 
     http_response_code(200);
-    echo json_encode(["received" => true]);
+    echo json_encode(["received" => true, "transaction_id" => $transactionId]);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+
     http_response_code(500);
     echo json_encode(["received" => false, "error" => $e->getMessage()]);
 }

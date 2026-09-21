@@ -69,6 +69,106 @@ try {
         exit;
     }
 
+    if ($action === 'delete') {
+        $addressId = (int)($data['address_id'] ?? 0);
+
+        if ($addressId <= 0) {
+            http_response_code(400);
+            echo json_encode(["success" => false, "error" => "Address is required."]);
+            exit;
+        }
+
+        $pdo->beginTransaction();
+
+        $check = $pdo->prepare(
+            "SELECT is_default FROM user_addresses WHERE user_id = ? AND address_id = ?"
+        );
+        $check->execute([$userId, $addressId]);
+        $existing = $check->fetch();
+
+        if (!$existing) {
+            $pdo->rollBack();
+            http_response_code(404);
+            echo json_encode(["success" => false, "error" => "Address not found."]);
+            exit;
+        }
+
+        $delete = $pdo->prepare(
+            "DELETE FROM user_addresses WHERE user_id = ? AND address_id = ?"
+        );
+        $delete->execute([$userId, $addressId]);
+
+        if ((int)$existing['is_default'] === 1) {
+            $fallback = $pdo->prepare(
+                "SELECT address_id FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, address_id DESC LIMIT 1"
+            );
+            $fallback->execute([$userId]);
+            $nextAddress = $fallback->fetch();
+
+            if ($nextAddress) {
+                $setDefault = $pdo->prepare(
+                    "UPDATE user_addresses SET is_default = 1 WHERE user_id = ? AND address_id = ?"
+                );
+                $setDefault->execute([$userId, (int)$nextAddress['address_id']]);
+            }
+        }
+
+        $pdo->commit();
+
+        echo json_encode(["success" => true]);
+        exit;
+    }
+
+    if ($action === 'update') {
+        $addressId = (int)($data['address_id'] ?? 0);
+        $recipientName = trim($data['recipient_name'] ?? '');
+        $phone = trim($data['phone'] ?? '');
+        $addressLine = trim($data['address_line'] ?? '');
+        $city = trim($data['city'] ?? '');
+        $province = trim($data['province'] ?? '');
+        $postalCode = trim($data['postal_code'] ?? '');
+        $isDefault = isset($data['is_default']) ? (int)$data['is_default'] : 0;
+
+        if ($addressId <= 0 || $recipientName === '' || $addressLine === '' || $city === '' || $province === '') {
+            http_response_code(400);
+            echo json_encode(["success" => false, "error" => "Address information is incomplete."]);
+            exit;
+        }
+
+        $phone = $phone === '' ? null : $phone;
+        $postalCode = $postalCode === '' ? null : $postalCode;
+
+        $pdo->beginTransaction();
+
+        if ($isDefault) {
+            $clear = $pdo->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?");
+            $clear->execute([$userId]);
+        }
+
+        $stmt = $pdo->prepare(
+            "UPDATE user_addresses
+             SET recipient_name = ?, phone = ?, address_line = ?, city = ?, province = ?, postal_code = ?, is_default = ?
+             WHERE user_id = ? AND address_id = ?"
+        );
+
+        $stmt->execute([
+            $recipientName,
+            $phone,
+            $addressLine,
+            $city,
+            $province,
+            $postalCode,
+            $isDefault ? 1 : 0,
+            $userId,
+            $addressId,
+        ]);
+
+        $pdo->commit();
+
+        echo json_encode(["success" => true, "address_id" => $addressId]);
+        exit;
+    }
+
     $recipientName = trim($data['recipient_name'] ?? '');
     $phone = trim($data['phone'] ?? '');
     $addressLine = trim($data['address_line'] ?? '');
