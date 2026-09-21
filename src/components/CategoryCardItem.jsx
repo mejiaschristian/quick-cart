@@ -1,22 +1,22 @@
-function CategoryCardItem({ category }) {
+function CategoryCardItem({ category, isSelected, onSelect }) {
     return (
-        <div className="category-card card text-center d-flex flex-row align-items-center justify-content-center">
-            <div className="card-img">
-                <img
-                    src={
-                        category.image_url ||
-                        "https://placehold.co/130x80?text=No+Image"
-                    }
-                    alt={category.name ?? "Category"}
-                />
+        <label
+            className={`category-card ${isSelected ? "category-card-selected" : ""}`}
+            aria-label={`Filter products by ${category.name ?? "category"}`}
+        >
+            <input
+                className="form-check-input category-card-radio"
+                type="radio"
+                name="category-filter"
+                checked={Boolean(isSelected)}
+                onChange={() => onSelect?.(category.category_id)}
+            />
+
+            <div className="category-card-text">
+                <span className="category-card-title">{category.name}</span>
+                <small>{category.description}</small>
             </div>
-            <div className="container">
-                <p className="card-title fw-bold">{category.name}</p>
-                <small className="card-text text-muted">
-                    {category.description}
-                </small>
-            </div>
-        </div>
+        </label>
     );
 }
 

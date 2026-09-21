@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "bootstrap";
 
 const emptyAddress = {
@@ -11,19 +11,46 @@ const emptyAddress = {
     is_default: false,
 };
 
-function AddAddress({ onSaved = () => {} }) {
+function AddAddress({ address = null, onSaved = () => {} }) {
     const [form, setForm] = useState(emptyAddress);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const modalRef = useRef(null);
 
-    const closeModal = () => {
-        const modalElement = document.getElementById("addAddressModal");
-        if (!modalElement) {
+    useEffect(() => {
+        if (!address) {
+            setForm(emptyAddress);
             return;
         }
 
-        const modal = Modal.getOrCreateInstance(modalElement);
-        modal.hide();
+        setForm({
+            ...emptyAddress,
+            ...address,
+            is_default: Boolean(address.is_default),
+        });
+    }, [address]);
+
+    // "hidden.bs.modal" fires once the modal has finished closing, no matter
+    // whether that was a successful save, Cancel, Escape, or a backdrop click.
+    // Resetting here (instead of only after a successful submit) is what
+    // stops stale form values from carrying over into the next time it opens.
+    useEffect(() => {
+        const modalElement = modalRef.current;
+        if (!modalElement) return undefined;
+
+        const handleHidden = () => {
+            setForm(emptyAddress);
+            setError("");
+        };
+
+        modalElement.addEventListener("hidden.bs.modal", handleHidden);
+        return () =>
+            modalElement.removeEventListener("hidden.bs.modal", handleHidden);
+    }, []);
+
+    const closeModal = () => {
+        if (!modalRef.current) return;
+        Modal.getOrCreateInstance(modalRef.current).hide();
     };
 
     const handleChange = (event) => {
@@ -40,13 +67,21 @@ function AddAddress({ onSaved = () => {} }) {
         setSaving(true);
 
         try {
+            const payload = {
+                ...(address?.address_id
+                    ? { address_id: address.address_id }
+                    : {}),
+                ...(address ? { action: "update" } : { action: "create" }),
+                ...form,
+            };
+
             const response = await fetch(
                 "http://localhost/quickcart-api/addresses.php",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify(form),
+                    body: JSON.stringify(payload),
                 },
             );
 
@@ -56,9 +91,8 @@ function AddAddress({ onSaved = () => {} }) {
                 return;
             }
 
-            onSaved();
-            closeModal();
-            setForm(emptyAddress);
+            onSaved?.(Boolean(address?.address_id));
+            closeModal(); // form/error reset is handled by the hidden.bs.modal listener above
         } catch {
             setError("Unable to save address.");
         } finally {
@@ -70,6 +104,7 @@ function AddAddress({ onSaved = () => {} }) {
         <div
             className="modal fade"
             id="addAddressModal"
+            ref={modalRef}
             tabIndex="-1"
             aria-labelledby="addAddressModalLabel"
             aria-hidden="true"
@@ -82,7 +117,7 @@ function AddAddress({ onSaved = () => {} }) {
                                 className="modal-title"
                                 id="addAddressModalLabel"
                             >
-                                Add address
+                                {address ? "Edit address" : "Add address"}
                             </h5>
                             <button
                                 className="btn-close"
@@ -214,7 +249,11 @@ function AddAddress({ onSaved = () => {} }) {
                                 type="submit"
                                 disabled={saving}
                             >
-                                {saving ? "Saving..." : "Save address"}
+                                {saving
+                                    ? "Saving..."
+                                    : address
+                                      ? "Save changes"
+                                      : "Save address"}
                             </button>
                         </div>
                     </form>

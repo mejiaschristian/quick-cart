@@ -1,17 +1,31 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../context/useAuth.js";
+import { useNavigate } from "react-router-dom";
+import { Modal } from "bootstrap";
+import { useAuth } from "../../context/useAuth";
 import AddAddress from "../../components/AddAddress.jsx";
+import AppToast from "../../components/Toast.jsx";
 
 const emptyProfile = { email: "", full_name: "", phone: "", address: "" };
 
 function Profile() {
-    const { refreshUser } = useAuth();
+    const { refreshUser, logout } = useAuth();
     const [profile, setProfile] = useState(emptyProfile);
     const [addresses, setAddresses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [toast, setToast] = useState(null);
+    const [editingAddress, setEditingAddress] = useState(null);
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } finally {
+            navigate("/login", { replace: true });
+        }
+    };
 
     const loadProfile = async () => {
         try {
@@ -92,6 +106,10 @@ function Profile() {
 
             await refreshUser();
             setMessage("Profile updated successfully.");
+            setToast({
+                title: "Profile updated",
+                message: "Your details have been saved successfully.",
+            });
         } catch {
             setError("Unable to save your profile.");
         } finally {
@@ -121,8 +139,73 @@ function Profile() {
             }
 
             await loadAddresses();
+            setToast({
+                title: "Default updated",
+                message: "Your default delivery address has been changed.",
+            });
         } catch {
             setError("Unable to update default address.");
+        }
+    };
+
+    const handleAddressSaved = async (isEdit) => {
+        await loadAddresses();
+        setToast({
+            title: isEdit ? "Address updated" : "Address added",
+            message: isEdit
+                ? "Your delivery address has been updated."
+                : "Your delivery address has been saved.",
+        });
+        setEditingAddress(null);
+    };
+
+    const handleDeleteAddress = async (address) => {
+        const confirmed = window.confirm(
+            `Delete this address for ${address.recipient_name}?`,
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(
+                "http://localhost/quickcart-api/addresses.php",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        action: "delete",
+                        address_id: address.address_id,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                setError(data.error || "Unable to delete address.");
+                return;
+            }
+
+            await loadAddresses();
+            setToast({
+                title: "Address removed",
+                message: "The selected delivery address has been removed.",
+            });
+        } catch {
+            setError("Unable to delete address.");
+        }
+    };
+
+    // Per Bootstrap's "via JavaScript" docs: set state first, then show()
+    // the modal ourselves — rather than a data-bs-toggle attribute doing it
+    // declaratively — so AddAddress always receives the right `address`
+    // prop before it ever becomes visible.
+    const openAddressModal = (address = null) => {
+        setEditingAddress(address);
+
+        const modalElement = document.getElementById("addAddressModal");
+        if (modalElement) {
+            Modal.getOrCreateInstance(modalElement).show();
         }
     };
 
@@ -185,8 +268,7 @@ function Profile() {
                         <button
                             className="btn btn-outline-primary btn-sm"
                             type="button"
-                            data-bs-toggle="modal"
-                            data-bs-target="#addAddressModal"
+                            onClick={() => openAddressModal(null)}
                         >
                             + Add an address
                         </button>
@@ -225,6 +307,24 @@ function Profile() {
                                         {address.postal_code || ""}
                                         {address.is_default ? " (Default)" : ""}
                                     </label>
+                                    <button
+                                        className="btn btn-link btn-sm p-0 ms-2 text-success"
+                                        type="button"
+                                        onClick={() =>
+                                            openAddressModal(address)
+                                        }
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="btn btn-link btn-sm p-0 ms-2 text-danger"
+                                        type="button"
+                                        onClick={() =>
+                                            handleDeleteAddress(address)
+                                        }
+                                    >
+                                        Remove
+                                    </button>
                                 </div>
                             ))
                         )}
@@ -240,11 +340,17 @@ function Profile() {
                 </button>
             </form>
 
-            <AddAddress
-                onSaved={async () => {
-                    await loadAddresses();
-                }}
-            />
+            <button
+                className="btn btn-outline-danger mt-2 w-100"
+                type="button"
+                onClick={handleLogout}
+            >
+                Logout
+            </button>
+
+            <AddAddress address={editingAddress} onSaved={handleAddressSaved} />
+
+            <AppToast toast={toast} onClose={() => setToast(null)} />
         </>
     );
 }

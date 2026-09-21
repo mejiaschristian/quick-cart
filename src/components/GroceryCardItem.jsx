@@ -3,9 +3,25 @@ import { useMemo } from "react";
 function GroceryCardItem({ product, onSelect }) {
     const stockStatus = useMemo(() => {
         const stock = Number(product?.stock_quantity ?? 0);
-        if (stock <= 0) return "Out of stock";
-        if (stock < 10) return "Low stock";
-        return "In stock";
+
+        if (stock <= 0) {
+            return {
+                label: "Out of stock",
+                color: "text-danger",
+            };
+        }
+
+        if (stock < 10) {
+            return {
+                label: "Limited stocks!",
+                color: "text-warning",
+            };
+        }
+
+        return {
+            label: "In stock",
+            color: "text-success",
+        };
     }, [product]);
 
     return (
@@ -27,31 +43,35 @@ function GroceryCardItem({ product, onSelect }) {
                         }
                         alt={product?.name ?? "Grocery item"}
                     />
-                    <span className="grocery-card-category">
+                    <span className="badge bg-light text-success grocery-card-category">
                         {product?.category_name ?? "Grocery"}
                     </span>
                 </div>
 
-                <div className="grocery-card-body">
-                    <div className="grocery-card-top">
-                        <h4 className="grocery-card-title">
+                <div className="card-body">
+                    <div className="d-flex m-2 justify-content-between">
+                        <h5 className="m-0 p-0">
                             {product?.name ?? "Fresh Item"}
-                        </h4>
-                        <span className="grocery-card-price">
-                            ₱{Number(product?.price ?? 0).toFixed(2)} {" "}
-                            <span className="text-muted">/ {product?.unit ?? "unit"}</span>
-                        </span>
+                        </h5>
+                        <small className="text-success fw-bold">
+                            ₱{Number(product?.price ?? 0).toFixed(2)}{" "}
+                            <span className="text-muted">
+                                / {product?.unit ?? "unit"}
+                            </span>
+                        </small>
                     </div>
-                    <p className="grocery-card-description">
-                        {product?.description?.slice(0, 64) ||
-                            "Fresh grocery essentials selected for your kitchen."}
-                    </p>
-
-                    <div className="grocery-card-bottom">
+                    <div className="grocery-card-description">
+                        <small className=" text-muted mx-2">
+                            {product?.description?.slice(0, 64) ||
+                                "Fresh grocery essentials selected for your kitchen."}
+                        </small>
+                    </div>
+                                    
+                    <div className="m-2">
                         <span
-                            className={`grocery-card-stock ${stockStatus === "Out of stock" ? "text-danger" : ""}`}
+                            className={`badge bg-success-subtle ${stockStatus.color}`}
                         >
-                            {stockStatus}
+                            {stockStatus.label}
                         </span>
                     </div>
                 </div>

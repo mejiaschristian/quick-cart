@@ -123,11 +123,6 @@ function Cart() {
 
         setCheckoutMessage("");
 
-        if (paymentMethod !== "payrex") {
-            setCheckoutMessage("Cash on pickup selected.");
-            return;
-        }
-
         if (fulfillmentType === "delivery" && !selectedAddressId) {
             setCheckoutMessage(
                 "Please choose a delivery address before checking out.",
@@ -151,6 +146,7 @@ function Cart() {
                         })),
                         fulfillmentType, // "delivery" | "pickup"
                         selectedAddressId, // required for delivery
+                        paymentMethod,
                     }),
                 },
             );
@@ -158,8 +154,16 @@ function Cart() {
             const data = await res.json();
 
             if (data.success) {
-                window.location.href = data.url;
-                return; // leaving the page — don't clear isSubmitting
+                localStorage.removeItem("quickcart_cart");
+                setItems([]);
+
+                if (data.url) {
+                    window.location.href = data.url;
+                    return; // leaving the page — don't clear isSubmitting
+                }
+
+                window.location.href = `/orders?checkout=success&order=${data.transaction_id ?? ""}`;
+                return;
             }
 
             setCheckoutMessage(
@@ -434,12 +438,10 @@ function Cart() {
                                         <input
                                             type="radio"
                                             name="payment_method"
-                                            value="cash_pickup"
-                                            checked={
-                                                paymentMethod === "cash_pickup"
-                                            }
+                                            value="cash"
+                                            checked={paymentMethod === "cash"}
                                             onChange={() =>
-                                                setPaymentMethod("cash_pickup")
+                                                setPaymentMethod("cash")
                                             }
                                         />
                                         <span>Cash on pickup</span>

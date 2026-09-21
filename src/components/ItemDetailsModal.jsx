@@ -9,6 +9,7 @@ export default function ItemDetailsModal({
     onAddToCart,
 }) {
     const modalRef = useRef(null);
+    const isOutOfStock = Number(product?.stock_quantity ?? 0) <= 0;
 
     useEffect(() => {
         const modalElement = modalRef.current;
@@ -22,7 +23,7 @@ export default function ItemDetailsModal({
     }, [onClose]);
 
     const handleAdd = () => {
-        if (!product) return;
+        if (!product || isOutOfStock) return;
         onAddToCart?.(product, quantity);
     };
 
@@ -120,6 +121,7 @@ export default function ItemDetailsModal({
                                                 <button
                                                     type="button"
                                                     className="btn btn-outline-secondary qty-button"
+                                                    disabled={isOutOfStock}
                                                     onClick={() =>
                                                         onQuantityChange?.(
                                                             Math.max(
@@ -135,27 +137,45 @@ export default function ItemDetailsModal({
                                                     className="form-control quantity-input border-secondary"
                                                     type="number"
                                                     min="1"
-                                                    value={quantity}
-                                                    onChange={(event) =>
+                                                    max={Math.max(1, Number(product.stock_quantity ?? 1))}
+                                                    value={isOutOfStock ? 0 : quantity}
+                                                    onChange={(event) => {
+                                                        if (isOutOfStock) return;
+
                                                         onQuantityChange?.(
-                                                            Math.max(
-                                                                1,
-                                                                Number(
-                                                                    event.target
-                                                                        .value,
-                                                                ) || 1,
+                                                            Math.min(
+                                                                Math.max(
+                                                                    1,
+                                                                    Number(
+                                                                        event.target
+                                                                            .value,
+                                                                    ) || 1,
+                                                                ),
+                                                                Math.max(
+                                                                    1,
+                                                                    Number(
+                                                                        product.stock_quantity ?? 1,
+                                                                    ),
+                                                                ),
                                                             ),
-                                                        )
-                                                    }
+                                                        );
+                                                    }}
                                                     aria-label="Quantity"
+                                                    disabled={isOutOfStock}
                                                 />
                                                 <button
                                                     type="button"
                                                     className="btn btn-outline-secondary qty-button"
+                                                    disabled={isOutOfStock}
                                                     onClick={() =>
                                                         onQuantityChange?.(
                                                             Math.min(
-                                                                99,
+                                                                Math.max(
+                                                                    1,
+                                                                    Number(
+                                                                        product.stock_quantity ?? 1,
+                                                                    ),
+                                                                ),
                                                                 quantity + 1,
                                                             ),
                                                         )
@@ -170,26 +190,30 @@ export default function ItemDetailsModal({
                                             <button
                                                 type="button"
                                                 className="btn btn-success w-100 fw-bold"
-                                                data-bs-dismiss="modal"
+                                                data-bs-dismiss={isOutOfStock ? undefined : "modal"}
                                                 onClick={handleAdd}
+                                                disabled={isOutOfStock}
                                             >
-                                                <span className="me-2">+</span>
-                                                Add to cart
+                                                <span className="me-2">{isOutOfStock ? "!" : "+"}</span>
+                                                {isOutOfStock ? "Out of stock" : "Add to cart"}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="col-md">
-                                    <h4>Related Items</h4>
-                                    <div className="grocery-grid">
-                                        {relatedItems.map((product) => (
+                                <h4>Related Items</h4>
+
+                                <div className="row">
+                                    {relatedItems.map((product) => (
+                                        <div
+                                            className="col-md-4"
+                                            key={product.id}
+                                        >
                                             <GroceryCardItem
-                                                key={product.id}
                                                 product={product}
                                             />
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

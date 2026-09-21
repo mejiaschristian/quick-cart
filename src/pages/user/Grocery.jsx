@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Modal } from "bootstrap";
 import { useAuth } from "../../context/useAuth";
+import GroceryCarousel from "../../components/GroceryCarousel.jsx";
 import GroceryCardItem from "../../components/GroceryCardItem.jsx";
 import ItemDetailsModal from "../../components/ItemDetailsModal.jsx";
 import CategoryCardItem from "../../components/CategoryCardItem.jsx";
@@ -12,6 +14,7 @@ function Grocery() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState("all");
     const [quantity, setQuantity] = useState(1);
     const [toast, setToast] = useState(null);
 
@@ -58,11 +61,28 @@ function Grocery() {
     const openDetails = (product) => {
         setSelectedProduct(product);
         setQuantity(1);
+
+        // ItemDetailsModal only listens for hidden.bs.modal to clear its own
+        // state — it never shows itself. This is the one call that actually
+        // opens it, following Bootstrap's documented JS API.
+        const modalElement = document.getElementById("itemDetailsModal");
+        if (modalElement) {
+            Modal.getOrCreateInstance(modalElement).show();
+        }
     };
 
     const closeDetails = () => {
         setSelectedProduct(null);
     };
+
+    const filteredProducts =
+        selectedCategoryId === "all"
+            ? products
+            : products.filter(
+                  (product) =>
+                      String(product.category_id) ===
+                      String(selectedCategoryId),
+              );
 
     const addToCart = (product, quantity) => {
         const cart = JSON.parse(localStorage.getItem("quickcart_cart") ?? "[]");
@@ -97,36 +117,68 @@ function Grocery() {
     return (
         <>
             <div className="mb-4">
-                <p className="text-success text-uppercase fw-bold small mb-1">
-                    Grocery Items
-                </p>
-                <h2 className="mb-2">Welcome, {user?.full_name || "User"}!</h2>
-                <p className="text-body-secondary mb-0">
-                    Browse our selection of fresh groceries and essentials.
-                </p>
+                <div className="d-flex justify-content-center">
+                    <GroceryCarousel />
+                </div>
+                <div className="my-3">
+                    <p className="text-success text-uppercase fw-bold small mb-1">
+                        Grocery Items
+                    </p>
+                    <h2 className="mb-2">
+                        Welcome, {user?.full_name || "User"}!
+                    </h2>
+                    <p className="text-body-secondary mb-0">
+                        Browse our selection of fresh groceries and essentials.
+                    </p>
+                </div>
             </div>
 
             <div className="mb-4">
                 <h2>All Categories</h2>
-                <div className="d-flex gap-3">
+                <div className="d-flex flex-row flex-wrap gap-3 py-2">
+                    <CategoryCardItem
+                        category={{
+                            category_id: "all",
+                            name: "All",
+                            description: "View every item",
+                            image_url:
+                                "https://placehold.co/130x80?text=All+Items",
+                        }}
+                        isSelected={selectedCategoryId === "all"}
+                        onSelect={() => setSelectedCategoryId("all")}
+                    />
                     {categories.map((category) => (
                         <CategoryCardItem
                             key={category.category_id}
                             category={category}
+                            isSelected={
+                                String(category.category_id) ===
+                                String(selectedCategoryId)
+                            }
+                            onSelect={() =>
+                                setSelectedCategoryId(category.category_id)
+                            }
                         />
                     ))}
                 </div>
             </div>
 
-            <div className="grocery-grid">
-                {products.map((product) => (
-                    <GroceryCardItem
-                        key={product.product_id}
-                        product={product}
-                        onSelect={openDetails}
-                    />
-                ))}
-            </div>
+            {filteredProducts.length === 0 ? (
+                <div className="alert alert-light border text-center text-muted">
+                    No products found in this category.
+                </div>
+            ) : (
+                <div className="row">
+                    {filteredProducts.map((product) => (
+                        <div className="col-md-3" key={product.product_id}>
+                            <GroceryCardItem
+                                product={product}
+                                onSelect={openDetails}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <ItemDetailsModal
                 product={selectedProduct}

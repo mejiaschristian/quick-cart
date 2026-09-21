@@ -20,7 +20,12 @@ function statusClass(status) {
     return "text-bg-warning";
 }
 
-function OrderCard({ order }) {
+function OrderCard({ order, onRetryPayment, onCancelOrder }) {
+    const canActOnPendingPayRexOrder =
+        order.order_status === "pending" &&
+        order.payment_method === "payrex" &&
+        order.payment_status === "pending";
+
     return (
         <article className="card border-0 shadow-sm h-100">
             <div className="card-body">
@@ -80,6 +85,25 @@ function OrderCard({ order }) {
                     <span>Total</span>
                     <span>₱{Number(order.total_amount).toFixed(2)}</span>
                 </div>
+
+                {canActOnPendingPayRexOrder && (
+                    <div className="d-flex gap-2 mt-3">
+                        <button
+                            type="button"
+                            className="btn btn-success btn-sm flex-fill"
+                            onClick={() => onRetryPayment?.(order)}
+                        >
+                            Proceed payment
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => onCancelOrder?.(order)}
+                        >
+                            Cancel order
+                        </button>
+                    </div>
+                )}
             </div>
         </article>
     );
@@ -91,7 +115,7 @@ function Orders() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
+    const refreshOrders = () => {
         fetch("http://localhost/quickcart-api/orders.php", {
             credentials: "include",
         })
@@ -103,7 +127,79 @@ function Orders() {
             })
             .catch((requestError) => setError(requestError.message))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        refreshOrders();
     }, []);
+
+    const handleRetryPayment = async (order) => {
+        try {
+            const response = await fetch(
+                "http://localhost/quickcart-api/orders.php",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "retry_payment",
+                        transaction_id: order.transaction_id,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || "Unable to retry payment.");
+            }
+
+            window.location.href = data.url;
+        } catch (requestError) {
+            setError(requestError.message);
+        }
+    };
+
+    const handleCancelOrder = async (order) => {
+        const confirmed = window.confirm(
+            "Cancel this pending order? This will mark the payment as failed.",
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(
+                "http://localhost/quickcart-api/orders.php",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "cancel_order",
+                        transaction_id: order.transaction_id,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || "Unable to cancel order.");
+            }
+
+            setOrders((currentOrders) =>
+                currentOrders.map((currentOrder) =>
+                    currentOrder.transaction_id === order.transaction_id
+                        ? {
+                              ...currentOrder,
+                              order_status: "cancelled",
+                              payment_status: "failed",
+                          }
+                        : currentOrder,
+                ),
+            );
+        } catch (requestError) {
+            setError(requestError.message);
+        }
+    };
 
     const visibleOrders = useMemo(() => {
         if (filter === "completed") {
@@ -163,7 +259,11 @@ function Orders() {
                 <div className="row g-4">
                     {visibleOrders.map((order) => (
                         <div className="col-lg-6" key={order.transaction_id}>
-                            <OrderCard order={order} />
+                            <OrderCard
+                                order={order}
+                                onRetryPayment={handleRetryPayment}
+                                onCancelOrder={handleCancelOrder}
+                            />
                         </div>
                     ))}
                 </div>

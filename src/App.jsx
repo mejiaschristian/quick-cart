@@ -1,88 +1,99 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { useRef } from "react";
+import { Outlet, NavLink } from "react-router-dom";
+import { Collapse } from "bootstrap";
 import { useAuth } from "./context/useAuth";
+import userIcon from "./assets/user-icon.svg";
 
 export default function App() {
-    const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const navRef = useRef(null);
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } finally {
-            navigate("/login", { replace: true });
+    const navLinkClass = ({ isActive }) =>
+        `nav-link ${isActive ? "active" : ""}`;
+
+    // Bootstrap's collapse only reacts to its own toggler — it doesn't know
+    // React Router just navigated. { toggle: false } matches how Bootstrap's
+    // own data-bs-toggle handler constructs instances internally, so we
+    // don't accidentally trigger a toggle-on-construct if this is the first
+    // time the collapse is touched (e.g. a link click at desktop width,
+    // where the menu was never manually opened at all).
+    const closeMobileMenu = (event) => {
+        if (!event.target.closest("a")) return;
+
+        const navElement = navRef.current;
+        if (navElement) {
+            Collapse.getOrCreateInstance(navElement, { toggle: false }).hide();
         }
     };
 
     return (
         <div>
-            <nav className="navbar navbar-expand-sm navbar-dark bg-success p-2">
-                <a className="navbar-brand fw-bold" href="#">
-                    QuickCart
-                </a>
-                <button
-                    className="navbar-toggler d-lg-none"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#collapsibleNavId"
-                    aria-controls="collapsibleNavId"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation"
-                ></button>
-                <div
-                    className="collapse navbar-collapse justify-content-between"
-                    id="collapsibleNavId"
-                >
-                    <ul className="navbar-nav me-auto mt-2 mt-lg-0">
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/">
-                                Grocery
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/cart">
-                                Cart
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/orders">
-                                Orders
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/about">
-                                About
-                            </Link>
-                        </li>
-                    </ul>
-                    <ul className="navbar-nav gap-2">
-                        <li className="nav-item">
-                            <Link
-                                className="btn btn-success text-light d-flex align-items-center justify-content-center"
-                                to="/profile"
-                            >
-                                <img
-                                    className="me-2"
-                                    src="src\assets\user-icon.svg"
-                                    alt="userIcon"
-                                    width="25"
-                                />
-                                <p className="m-0 p-0">
-                                    {user?.full_name || "User"}
-                                </p>
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <button
-                                className="btn btn-danger"
-                                type="button"
-                                onClick={handleLogout}
-                            >
-                                Logout
-                            </button>
-                        </li>
-                    </ul>
+            <nav className="navbar navbar-expand-lg navbar-dark bg-success sticky-top app-navbar">
+                <div className="container-fluid px-3 px-lg-4">
+                    <NavLink className="navbar-brand app-brand" to="/" end>
+                        QuickCart
+                    </NavLink>
+
+                    <button
+                        className="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapsibleNavId"
+                        aria-controls="collapsibleNavId"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation"
+                    >
+                        <span className="navbar-toggler-icon" />
+                    </button>
+
+                    <div
+                        ref={navRef}
+                        className="collapse navbar-collapse justify-content-between"
+                        id="collapsibleNavId"
+                        onClick={closeMobileMenu}
+                    >
+                        <ul className="navbar-nav me-auto align-items-lg-center gap-lg-1">
+                            <li className="nav-item">
+                                <NavLink className={navLinkClass} to="/" end>
+                                    Grocery
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink className={navLinkClass} to="/cart">
+                                    Cart
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink className={navLinkClass} to="/orders">
+                                    Orders
+                                </NavLink>
+                            </li>
+                            <li className="nav-item">
+                                <NavLink className={navLinkClass} to="/about">
+                                    About
+                                </NavLink>
+                            </li>
+                        </ul>
+
+                        <ul className="navbar-nav align-items-lg-center gap-2 app-nav-actions">
+                            <li className="nav-item">
+                                <NavLink
+                                    className="btn app-profile-btn d-flex"
+                                    to="/profile"
+                                >
+                                    <img
+                                        className="app-profile-avatar"
+                                        src={userIcon}
+                                        alt="User profile"
+                                    />
+                                    <span className="text-light">{user?.full_name || "User"}</span>
+                                </NavLink>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </nav>
+
             <main>
                 <Outlet />
             </main>
