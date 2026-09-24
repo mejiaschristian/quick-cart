@@ -1,108 +1,159 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, NavLink } from "react-router-dom";
+import { Home, List, Box, User, Users, Menu, X } from "lucide-react";
 import { useAuth } from "./context/useAuth";
+import userIconDark from "./assets/user-icon-dark.svg";
+import "../src/pages/admin/Dashboard.css";
 
 export default function AdminApp() {
-    const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { user } = useAuth();
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } finally {
-            navigate("/login", { replace: true });
-        }
-    };
+    const menuItems = [
+        { name: "Dashboard", path: "/admin", end: true, icon: Home },
+        { name: "Orders", path: "/admin/orders", end: false, icon: List },
+        { name: "Inventory", path: "/admin/inventory", end: false, icon: Box },
+        {
+            name: "Customer Accounts",
+            path: "/admin/customers",
+            end: false,
+            icon: User,
+        },
+        {
+            name: "Admin Accounts",
+            path: "/admin/admins",
+            end: false,
+            icon: Users,
+        },
+    ];
 
     return (
-        <div className="admin-app d-flex min-vh-100">
-            <aside className="admin-sidebar bg-success text-white p-3">
-                <div className="d-flex align-items-center justify-content-between">
-                    <div className="admin-brand fw-bold fs-5">
-                        QuickCart Admin
-                    </div>
+        // Flex-column for mobile (top nav), flex-lg-row for desktop (side nav)
+        <div className="admin-app d-flex flex-column flex-lg-row min-vh-100">
+            {/* 1. MOBILE TOP NAVBAR (Hidden on Desktop) */}
+            <nav className="navbar navbar-light bg-white border-bottom sticky-top d-lg-none px-3 py-3">
+                <div className="container-fluid p-0 d-flex justify-content-between align-items-center">
+                    <h2 className="brand-logo m-0 fs-4">
+                        Qcart<span className="brand-dot text-success">.</span>
+                    </h2>
+
+                    {/* Toggle Button */}
                     <button
-                        className="btn btn-sm btn-outline-light"
+                        className="navbar-toggler border-0 shadow-none px-0"
                         type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#adminSidebarNav"
-                        aria-label="Toggle admin navigation"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     >
-                        ☰
+                        {isMobileMenuOpen ? (
+                            <X size={28} />
+                        ) : (
+                            <Menu size={28} />
+                        )}
                     </button>
                 </div>
 
-                <div className="collapse show mt-4" id="adminSidebarNav">
-                    <ul className="nav flex-column gap-2">
-                        <li className="nav-item">
-                            <Link className="nav-link text-white" to="/admin">
-                                <span className="me-2">▦</span>
-                                Dashboard (Analytics)
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link
-                                className="nav-link text-white"
-                                to="/admin/orders"
-                            >
-                                <span className="me-2">▤</span>
-                                Order List
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link
-                                className="nav-link text-white"
-                                to="/admin/inventory"
-                            >
-                                <span className="me-2">▥</span>
-                                Inventory / Products
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link
-                                className="nav-link text-white"
-                                to="/admin/customers"
-                            >
-                                <span className="me-2">♙</span>
-                                Customer Accounts List
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link
-                                className="nav-link text-white"
-                                to="/admin/admins"
-                            >
-                                <span className="me-2">⚙</span>
-                                Admin Accounts List
-                            </Link>
-                        </li>
+                {/* Mobile Collapsible Menu Area */}
+                <div
+                    className={`collapse navbar-collapse w-100 ${isMobileMenuOpen ? "show mt-3" : ""}`}
+                >
+                    <ul className="navbar-nav me-auto mb-2 gap-1">
+                        {menuItems.map((item, index) => (
+                            <li className="nav-item" key={index}>
+                                <NavLink
+                                    to={item.path}
+                                    end={item.end}
+                                    className={({ isActive }) =>
+                                        `nav-link d-flex align-items-center rounded px-3 py-2 ${isActive ? "bg-success bg-opacity-10 text-success fw-medium" : "text-secondary"}`
+                                    }
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    <item.icon size={20} className="me-3" />
+                                    {item.name}
+                                </NavLink>
+                            </li>
+                        ))}
                     </ul>
+                    <hr className="my-2 border-secondary opacity-25" />
+                    <NavLink
+                        to="/profile"
+                        className="d-flex align-items-center px-3 py-2 text-decoration-none"
+                    >
+                        <img
+                            className="rounded-circle me-3"
+                            src={userIconDark}
+                            alt="User profile"
+                            width="32"
+                            height="32"
+                        />
+                        <span className="text-dark fw-medium">
+                            {user?.full_name || "User"}
+                        </span>
+                    </NavLink>
+                </div>
+            </nav>
+
+            {/* 2. DESKTOP SIDEBAR (Hidden on Mobile) */}
+            <aside
+                className={`sidebar position-sticky top-0 d-none d-lg-flex ${isCollapsed ? "collapsed" : ""}`}
+            >
+                <button
+                    className="sidebar-toggle-btn"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                >
+                    <Menu size={18} />
+                </button>
+
+                <div className="sidebar-header text-center">
+                    <h2 className="brand-logo">
+                        {isCollapsed ? (
+                            "Q."
+                        ) : (
+                            <>
+                                Qcart<span className="brand-dot">.</span>
+                            </>
+                        )}
+                    </h2>
+                    {!isCollapsed && <p className="brand-subtitle">Admin</p>}
                 </div>
 
-                <div className="admin-sidebar-user mt-4 pt-4 border-top border-light">
-                    <Link
-                        className="btn btn-success text-light d-flex align-items-center justify-content-center w-100"
+                <nav className="sidebar-nav">
+                    {menuItems.map((item, index) => (
+                        <NavLink
+                            key={index}
+                            to={item.path}
+                            end={item.end}
+                            className={({ isActive }) =>
+                                `nav-item ${isActive ? "active" : ""}`
+                            }
+                        >
+                            <item.icon className="nav-icon" />
+                            {!isCollapsed && <span>{item.name}</span>}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="mt-auto p-3 border-top">
+                    <NavLink
+                        className="btn app-profile-btn d-flex align-items-center justify-content-center text-decoration-none"
                         to="/admin/profile"
                     >
                         <img
-                            className="me-2"
-                            src="src\assets\user-icon.svg"
-                            alt="userIcon"
-                            width="25"
+                            className={`app-profile-avatar ${isCollapsed ? "" : "me-2"}`}
+                            src={userIconDark}
+                            alt="User profile"
+                            width="32"
+                            height="32"
                         />
-                        <span className="m-0 p-0">
-                            {user?.full_name || "Admin"}
-                        </span>
-                    </Link>
-                    <button
-                        className="btn btn-danger w-100 mt-2"
-                        type="button"
-                        onClick={handleLogout}
-                    >
-                        Logout
-                    </button>
+                        {!isCollapsed && (
+                            <span className="text-dark fw-medium text-truncate">
+                                {user?.full_name || "User"}
+                            </span>
+                        )}
+                    </NavLink>
                 </div>
             </aside>
 
+            {/* 3. MAIN CONTENT */}
             <main className="admin-main flex-grow-1 bg-light">
                 <Outlet />
             </main>

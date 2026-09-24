@@ -238,7 +238,7 @@ function Orders() {
                 aria-label="Order status filter"
             >
                 {[
-                    ["all", "All"],
+                    ["all", "All Orders"],
                     ["pending", "Pending"],
                     ["completed", "Completed"],
                     ["cancelled", "Cancelled"],

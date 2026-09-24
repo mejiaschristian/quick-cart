@@ -8,7 +8,7 @@ import Cart from "./pages/user/Cart.jsx";
 import Orders from "./pages/user/Orders.jsx";
 import About from "./pages/user/About.jsx";
 import Profile from "./pages/user/Profile.jsx";
-import Dashboard from "./pages/admin/Dashboard/Dashboard.jsx";
+import Dashboard from "./pages/admin/Dashboard.jsx";
 import OrderList from "./pages/admin/OrderList.jsx";
 import Inventory from "./pages/admin/Inventory.jsx";
 import CustomerAccounts from "./pages/admin/CustomerAccounts.jsx";
@@ -99,6 +99,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
-        <Dashboard/>
+        <AuthProvider>
+            <RouterProvider router={router} />
+        </AuthProvider>
     </React.StrictMode>,
 );

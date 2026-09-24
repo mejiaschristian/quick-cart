@@ -2,7 +2,7 @@
 session_start();
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
@@ -19,7 +19,60 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin',
 
 require "db_connection.php";
 
+// Define allowed order statuses update -09/23/26
+$allowedStatuses = ['pending', 'completed', 'cancelled'];
+
 try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $raw = file_get_contents("php://input");
+        $payload = json_decode($raw, true) ?? [];
+        $action = $payload['action'] ?? null;
+        $transactionId = isset($payload['transaction_id']) ? (int) $payload['transaction_id'] : 0;
+
+        if ($action === 'update_order_status') {
+            if ($transactionId <= 0) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Invalid transaction id."]);
+                exit;
+            }
+
+            $status = strtolower(trim((string) ($payload['order_status'] ?? '')));
+            if ($status === 'canceled') {
+                $status = 'cancelled';
+            }
+
+            if (!in_array($status, $allowedStatuses, true)) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Invalid order status."]);
+                exit;
+            }
+
+            $stmt = $pdo->prepare(
+                "UPDATE transactions SET order_status = ?, updated_at = CURRENT_TIMESTAMP WHERE transaction_id = ?"
+            );
+            $stmt->execute([$status, $transactionId]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(["success" => false, "error" => "Order not found."]);
+                exit;
+            }
+
+            echo json_encode([
+                "success" => true,
+                "transaction_id" => $transactionId,
+                "order_status" => $status,
+            ]);
+            exit;
+        }
+
+        http_response_code(400);
+        echo json_encode(["success" => false, "error" => "Unsupported action."]);
+        exit;
+    }
+
+    // End line of Update order status logic
+
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         http_response_code(405);
         echo json_encode(["success" => false, "error" => "Method not allowed."]);

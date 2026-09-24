@@ -1,35 +1,70 @@
 
-/* General Resets & Layout */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Poppins', sans-serif;
-}
 
-.dashboard-container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background-color: #EAE7DF;
-}
 
 /* Sidebar Styling */
+/* Update your existing .sidebar class to add sticky positioning and transition */
 .sidebar {
   width: 250px;
   min-width: 250px;
-  background-color: #ffffff;
   height: 100vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  position: relative;
+  position: sticky;
+  top: 0; /* Required for sticky behavior */
   z-index: 10;
+  transition: width 0.3s ease, min-width 0.3s ease;
 }
 
-.sidebar-header {
-  padding: 24px;
+/* --- ADD THE FOLLOWING STYLES AT THE BOTTOM OF THE FILE --- */
+
+/* Collapsed Sidebar State */
+.sidebar.collapsed {
+  width: 80px;
+  min-width: 80px;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  position: absolute;
+  right: -14px;
+  top: 28px;
+  background-color: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  color: #4B5563;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+/* Adjust layout when collapsed */
+.sidebar.collapsed .sidebar-header {
+  padding: 24px 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar.collapsed .nav-icon {
+  margin-right: 0;
+}
+
+.sidebar.collapsed .app-profile-btn {
+  padding: 8px 0;
 }
 
 .brand-logo {
@@ -71,53 +106,8 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
-.nav-item:hover {
-  background-color: #F9FAFB;
-}
-
-.nav-item.active {
-  background-color: #ECFDF5;
-  color: #059669;
-}
-
-.nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 12px;
-  color: #9CA3AF;
-}
-
 .nav-item.active .nav-icon {
   color: #059669;
-}
-
-/* Right Main Area */
-.dashboard-main-area {
-  flex: 1;
-  height: 100vh;
-  overflow-y: auto;
-  background-color: #EAE7DF;
-}
-
-.dashboard-content {
-  padding: 32px;
-}
-
-/* Header Text Area */
-.header-text-area {
-  margin-bottom: 24px;
-}
-
-.welcome-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: #1F2937;
-}
-
-.welcome-subtitle {
-  font-size: 18px;
-  color: #4B5563;
-  margin-top: 4px;
 }
 
 /* Background Image Container with Dedicated Opacity Layer */
@@ -140,7 +130,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('/dashboard-bg.png');
+  background-image: url('public/c1.png');
   background-size: cover;
   background-position: center 40%; /* Crops out top lights */
   background-repeat: no-repeat;
