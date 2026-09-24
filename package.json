@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "bootstrap": "^5.3.8",
+    "dotenv": "^18.0.3",
     "payrex-node": "^1.7.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

@@ -136,7 +136,8 @@ function AddAddress({ address = null, onSaved = () => {} }) {
 
                             <div className="mb-3">
                                 <label className="form-label fw-semibold">
-                                    Recipient name
+                                    Recipient name{" "}
+                                    <span className="text-danger">*</span>
                                 </label>
                                 <input
                                     className="form-control"
@@ -150,25 +151,33 @@ function AddAddress({ address = null, onSaved = () => {} }) {
 
                             <div className="mb-3">
                                 <label className="form-label fw-semibold">
-                                    Phone
+                                    Phone <span className="text-danger">*</span>
                                 </label>
                                 <input
                                     className="form-control"
                                     name="phone"
                                     type="tel"
+                                    placeholder="09XXXXXXXXX"
+                                    maxLength="11"
+                                    minLength="11"
+                                    pattern="^09[0-9]{9}$"
+                                    title="Please enter a valid 11-digit Philippine mobile number starting with 09"
                                     value={form.phone}
                                     onChange={handleChange}
+                                    required
                                 />
                             </div>
 
                             <div className="mb-3">
                                 <label className="form-label fw-semibold">
-                                    Address line
+                                    Address line{" "}
+                                    <span className="text-danger">*</span>
                                 </label>
                                 <input
                                     className="form-control"
                                     name="address_line"
                                     type="text"
+                                    placeholder="Block No., Lot No., Street Name"
                                     value={form.address_line}
                                     onChange={handleChange}
                                     required
@@ -178,7 +187,8 @@ function AddAddress({ address = null, onSaved = () => {} }) {
                             <div className="row g-3">
                                 <div className="col-md-4">
                                     <label className="form-label fw-semibold">
-                                        City
+                                        City{" "}
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         className="form-control"
@@ -192,7 +202,8 @@ function AddAddress({ address = null, onSaved = () => {} }) {
 
                                 <div className="col-md-4">
                                     <label className="form-label fw-semibold">
-                                        Province
+                                        Province{" "}
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         className="form-control"
@@ -206,7 +217,8 @@ function AddAddress({ address = null, onSaved = () => {} }) {
 
                                 <div className="col-md-4">
                                     <label className="form-label fw-semibold">
-                                        Postal code
+                                        Postal code{" "}
+                                        <span className="text-danger">*</span>
                                     </label>
                                     <input
                                         className="form-control"
@@ -214,6 +226,7 @@ function AddAddress({ address = null, onSaved = () => {} }) {
                                         type="text"
                                         value={form.postal_code}
                                         onChange={handleChange}
+                                        required
                                     />
                                 </div>
                             </div>

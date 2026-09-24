@@ -78,7 +78,7 @@ export default function App() {
                         <ul className="navbar-nav align-items-lg-center gap-2 app-nav-actions">
                             <li className="nav-item">
                                 <NavLink
-                                    className="btn app-profile-btn d-flex"
+                                    className={navLinkClass + "btn app-profile-btn d-flex"} 
                                     to="/profile"
                                 >
                                     <img

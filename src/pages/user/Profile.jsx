@@ -234,7 +234,6 @@ function Profile() {
                 {message && (
                     <div className="alert alert-success">{message}</div>
                 )}
-
                 <label className="form-label fw-semibold">
                     Email
                     <input
@@ -259,6 +258,16 @@ function Profile() {
                         required
                     />
                 </label>
+
+                <button
+                    className="mt-2 btn btn-success align-self-start"
+                    type="submit"
+                    disabled={saving}
+                >
+                    {saving ? "Saving..." : "Save changes"}
+                </button>
+
+                <hr />
 
                 <div className="mb-3">
                     <div className="d-flex align-items-center justify-content-between gap-3">
@@ -297,6 +306,7 @@ function Profile() {
                                             )
                                         }
                                     />
+
                                     <label
                                         className="form-check-label"
                                         htmlFor={`address-${address.address_id}`}
@@ -330,14 +340,6 @@ function Profile() {
                         )}
                     </div>
                 </div>
-
-                <button
-                    className="btn btn-success align-self-start"
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving ? "Saving..." : "Save changes"}
-                </button>
             </form>
 
             <button

@@ -81,7 +81,7 @@ export default function AdminApp() {
                 <div className="admin-sidebar-user mt-4 pt-4 border-top border-light">
                     <Link
                         className="btn btn-success text-light d-flex align-items-center justify-content-center w-100"
-                        to="/profile"
+                        to="/admin/profile"
                     >
                         <img
                             className="me-2"

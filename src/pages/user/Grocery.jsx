@@ -117,9 +117,6 @@ function Grocery() {
     return (
         <>
             <div className="mb-4">
-                <div className="d-flex justify-content-center">
-                    <GroceryCarousel />
-                </div>
                 <div className="my-3">
                     <p className="text-success text-uppercase fw-bold small mb-1">
                         Grocery Items
@@ -131,6 +128,7 @@ function Grocery() {
                         Browse our selection of fresh groceries and essentials.
                     </p>
                 </div>
+                <GroceryCarousel />
             </div>
 
             <div className="mb-4">

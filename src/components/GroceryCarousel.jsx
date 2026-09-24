@@ -3,7 +3,7 @@ function GroceryCarousel() {
         <>
             <div
                 id="carouselExampleCaptions"
-                className="carousel slide w-100"
+                className="carousel slide"
                 data-bs-ride="carousel"
             >
                 <div className="carousel-indicators">

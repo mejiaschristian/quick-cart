@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 function readCart() {
     try {
@@ -332,7 +333,10 @@ function Cart() {
                                     {addresses.length === 0 ? (
                                         <div className="text-muted small">
                                             No saved addresses found. Add one in
-                                            your profile.
+                                            your profile. 
+                                            <Link className="d-block m-2 btn btn-outline-success" to="/profile">
+                                                + Add Address
+                                            </Link>
                                         </div>
                                     ) : (
                                         <div className="address-list">

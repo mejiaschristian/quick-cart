@@ -202,6 +202,13 @@ function Orders() {
     };
 
     const visibleOrders = useMemo(() => {
+        if (filter === "all") {
+            return orders.filter(
+                (order) =>
+                    order.order_status &&
+                    String(order.order_status).trim() !== "",
+            );
+        }
         if (filter === "completed") {
             return orders.filter((order) => order.order_status === "completed");
         }
@@ -231,6 +238,7 @@ function Orders() {
                 aria-label="Order status filter"
             >
                 {[
+                    ["all", "All"],
                     ["pending", "Pending"],
                     ["completed", "Completed"],
                     ["cancelled", "Cancelled"],
