@@ -21,7 +21,8 @@ export default function PieChartWidget({ data }) {
   const dominantPaymentPct = isDigitalDominant ? paymentMethods.digitalPct : paymentMethods.cashPct;
 
   return (
-    <div className="widget-card">
+    <div className="card h-100 shadow-sm border-0">
+      <div className="card-body">
       {/* Widget Header */}
       <div className="widget-header" style={{ marginBottom: '16px' }}>
         <h3 className="widget-title">Performance Analytics</h3>
@@ -166,6 +167,7 @@ export default function PieChartWidget({ data }) {
           />
         </div>
 
+      </div>
       </div>
     </div>
   );

@@ -33,8 +33,8 @@ export default function BarChartWidget({
   const minChartWidth = timeframe === 'monthly' ? '700px' : '100%';
 
   return (
-    <div className="widget-card" style={{ width: '100%', padding: '20px' }}>
-      
+    <div className="card h-100 shadow-sm border-0">
+      <div className="card-body">
       {/* UNIFIED HEADER */}
       <div 
         className="widget-header" 
@@ -218,6 +218,7 @@ export default function BarChartWidget({
         </div>
       )}
 
+      </div>
     </div>
   );
 }
@@ -389,4 +390,4 @@ function SingleValueBarChart({ items, unit, singleColor, hoveredIdx, setHoveredI
       </div>
     </div>
   );
-}   
+}

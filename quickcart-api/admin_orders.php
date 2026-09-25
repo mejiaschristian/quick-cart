@@ -19,10 +19,44 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin',
 
 require "db_connection.php";
 
-// Define allowed order statuses update -09/23/26
-$allowedStatuses = ['pending', 'completed', 'cancelled'];
+function normalizeOrderStatusValue(string $status): string
+{
+    $value = strtolower(trim($status));
+    if ($value === '') {
+        return 'pending';
+    }
+    if ($value === 'canceled') {
+        return 'cancelled';
+    }
+    return $value;
+}
+
+function normalizePaymentStatusValue(string $status): string
+{
+    $value = strtolower(trim($status));
+    if ($value === '') {
+        return 'pending';
+    }
+    if ($value === 'canceled' || $value === 'cancelled') {
+        return 'failed';
+    }
+    return $value;
+}
+
+function getOrderStatusOptions(PDO $pdo): array
+{
+    return ['pending', 'processing', 'completed', 'cancelled'];
+}
+
+function getPaymentStatusOptions(PDO $pdo): array
+{
+    return ['pending', 'paid', 'failed'];
+}
 
 try {
+    $allowedStatuses = getOrderStatusOptions($pdo);
+    $allowedPaymentStatuses = getPaymentStatusOptions($pdo);
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $raw = file_get_contents("php://input");
         $payload = json_decode($raw, true) ?? [];
@@ -36,11 +70,7 @@ try {
                 exit;
             }
 
-            $status = strtolower(trim((string) ($payload['order_status'] ?? '')));
-            if ($status === 'canceled') {
-                $status = 'cancelled';
-            }
-
+            $status = normalizeOrderStatusValue((string) ($payload['order_status'] ?? ''));
             if (!in_array($status, $allowedStatuses, true)) {
                 http_response_code(400);
                 echo json_encode(["success" => false, "error" => "Invalid order status."]);
@@ -62,6 +92,55 @@ try {
                 "success" => true,
                 "transaction_id" => $transactionId,
                 "order_status" => $status,
+                "status_options" => $allowedStatuses,
+            ]);
+            exit;
+        }
+
+        if ($action === 'update_payment_status') {
+            if ($transactionId <= 0) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Invalid transaction id."]);
+                exit;
+            }
+
+            $paymentStatus = normalizePaymentStatusValue((string) ($payload['payment_status'] ?? ''));
+            if (!in_array($paymentStatus, $allowedPaymentStatuses, true)) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Invalid payment status."]);
+                exit;
+            }
+
+            $paymentMethodStmt = $pdo->prepare(
+                "SELECT payment_method FROM payments WHERE transaction_id = ?"
+            );
+            $paymentMethodStmt->execute([$transactionId]);
+            $paymentMethod = strtolower(trim((string) $paymentMethodStmt->fetchColumn()));
+
+            if ($paymentMethod !== 'cash') {
+                http_response_code(400);
+                echo json_encode(["success" => false, "error" => "Payment status can only be changed for cash orders."]);
+                exit;
+            }
+
+            $stmt = $pdo->prepare(
+                "UPDATE payments
+                 SET payment_status = ?, paid_at = CASE WHEN ? = 'paid' THEN CURRENT_TIMESTAMP ELSE NULL END
+                 WHERE transaction_id = ?"
+            );
+            $stmt->execute([$paymentStatus, $paymentStatus, $transactionId]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(["success" => false, "error" => "Order not found."]);
+                exit;
+            }
+
+            echo json_encode([
+                "success" => true,
+                "transaction_id" => $transactionId,
+                "payment_status" => $paymentStatus,
+                "payment_status_options" => $allowedPaymentStatuses,
             ]);
             exit;
         }
@@ -70,8 +149,6 @@ try {
         echo json_encode(["success" => false, "error" => "Unsupported action."]);
         exit;
     }
-
-    // End line of Update order status logic
 
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         http_response_code(405);
@@ -114,7 +191,12 @@ try {
     }
     unset($order);
 
-    echo json_encode(["success" => true, "orders" => $orders]);
+    echo json_encode([
+        "success" => true,
+        "orders" => $orders,
+        "status_options" => $allowedStatuses,
+        "payment_status_options" => $allowedPaymentStatuses,
+    ]);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["success" => false, "error" => "Unable to load orders."]);

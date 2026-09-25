@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 config.php
+quickcart_9-25-26.sql
 
 # Editor directories and files
 .vscode/*

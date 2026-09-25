@@ -17,7 +17,18 @@ export default function Dashboard() {
     useEffect(() => {
         let isMounted = true;
 
-        fetch("http://localhost/quickcart-api/get_dashboard_data.php")
+        // Previously this request carried no query params at all, so changing
+        // the timeframe/month/year controls just re-fetched identical,
+        // unfiltered data — the backend had nothing to filter by.
+        const params = new URLSearchParams({
+            timeframe,
+            month: selectedMonth,
+            year: selectedYear,
+        });
+
+        fetch(
+            `http://localhost/quickcart-api/get_dashboard_data.php?${params}`,
+        )
             .then((res) => res.json())
             .then((result) => {
                 if (isMounted) {
@@ -65,80 +76,80 @@ export default function Dashboard() {
     if (loading && !data) {
         return (
             <div
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100vh",
-                    fontFamily: "Poppins, sans-serif",
-                }}
+                className="d-flex justify-content-center align-items-center"
+                style={{ height: "100vh" }}
             >
                 <h2>Loading QuickCart Dashboard...</h2>
             </div>
         );
     }
 
+    // Data-driven instead of four near-identical <StatCard /> calls.
+    const statCards = [
+        {
+            title: "Real Revenue (Paid)",
+            value: data?.stats?.real_revenue ?? "$0.00",
+            percentage: data?.stats?.paid_orders ?? "0 Paid Orders",
+            isUp: true,
+            icon: "revenue",
+        },
+        {
+            title: "Expected Revenue",
+            value: data?.stats?.expected_revenue ?? "$0.00",
+            percentage: data?.stats?.unpaid_orders ?? "0 Unpaid Orders",
+            isUp: true,
+            icon: "orders",
+        },
+        {
+            title: "Total Lost Revenue",
+            value: data?.stats?.total_lost ?? "$0.00",
+            percentage: data?.stats?.lost_subtext ?? "Cancelled & Spoiled",
+            isUp: false,
+            icon: "canceled",
+        },
+        {
+            title: "Total Customers",
+            value: data?.stats?.total_customers ?? "0 Customers",
+            percentage:
+                data?.stats?.customer_subtext ?? "Registered Accounts",
+            isUp: true,
+            icon: "growth",
+        },
+    ];
+
     return (
-        <main className="container">
+        <main className="container-fluid p-4">
             <p className="text-success text-uppercase fw-bold small mb-1">
                 Dashboard
             </p>
             <h2 className="mb-2">Greetings, {user?.full_name || "User"}!</h2>
-            <p className="text-body-secondary mb-3">
+            <p className="text-body-secondary mb-4">
                 Welcome back to QuickCart Admin!
             </p>
 
             <div className="background-image-container">
-                {/* Stat Cards Grid */}
-                <div className="stats-grid">
-                    <StatCard
-                        title="Real Revenue (Paid)"
-                        value={data?.stats?.real_revenue ?? "$0.00"}
-                        percentage={data?.stats?.paid_orders ?? "0 Paid Orders"}
-                        isUp={true}
-                        icon="revenue"
-                    />
-                    <StatCard
-                        title="Expected Revenue"
-                        value={data?.stats?.expected_revenue ?? "$0.00"}
-                        percentage={
-                            data?.stats?.unpaid_orders ?? "0 Unpaid Orders"
-                        }
-                        isUp={true}
-                        icon="orders"
-                    />
-                    <StatCard
-                        title="Total Lost Revenue"
-                        value={data?.stats?.total_lost ?? "$0.00"}
-                        percentage={
-                            data?.stats?.lost_subtext ?? "Cancelled & Spoiled"
-                        }
-                        isUp={false}
-                        icon="canceled"
-                    />
-                    <StatCard
-                        title="Total Customers"
-                        value={data?.stats?.total_customers ?? "0 Customers"}
-                        percentage={
-                            data?.stats?.customer_subtext ??
-                            "Registered Accounts"
-                        }
-                        isUp={true}
-                        icon="growth"
-                    />
+                <div className="row g-3">
+                    {statCards.map((card) => (
+                        <div className="col-sm-6 col-xl-3" key={card.title}>
+                            <StatCard {...card} />
+                        </div>
+                    ))}
                 </div>
 
-                {/* Lower Widgets */}
-                <div className="dashboard-body">
-                    <div className="dashboard-row">
+                <div className="row g-4 mt-1">
+                    <div className="col-lg-8">
                         <PieChartWidget data={data?.pieChart} />
+                    </div>
+                    <div className="col-lg-4">
                         <ListWidget
                             type="expiring"
                             items={data?.expiringGoods}
                         />
                     </div>
+                </div>
 
-                    <div className="dashboard-row">
+                <div className="row g-4 mt-1">
+                    <div className="col-lg-8">
                         <BarChartWidget
                             data={data?.barChart}
                             timeframe={timeframe}
@@ -148,6 +159,8 @@ export default function Dashboard() {
                             selectedYear={selectedYear}
                             onYearChange={handleYearChange}
                         />
+                    </div>
+                    <div className="col-lg-4">
                         <ListWidget type="lowstock" items={data?.lowStock} />
                     </div>
                 </div>

@@ -21,7 +21,8 @@ export default function ListWidget({ type, items = [] }) {
     : (isExpiring ? fallbackExpiring : fallbackLowStock);
 
   return (
-    <div className="widget-card">
+    <div className="card h-100 shadow-sm border-0">
+      <div className="card-body">
       <div className="widget-header">
         <h3 className="widget-title">{isExpiring ? 'Expiring Goods' : 'Low stock'}</h3>
         <AlertCircle style={{ width: 20, height: 20, color: isExpiring ? '#F43F5E' : '#F59E0B' }} />
@@ -47,6 +48,7 @@ export default function ListWidget({ type, items = [] }) {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

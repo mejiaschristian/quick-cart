@@ -17,20 +17,22 @@ export default function StatCard({ title, value, percentage, isUp, icon }) {
   };
 
   return (
-    <div className="stat-card">
-      <div className="stat-icon-wrapper">
-        {getIcon()}
-        <span className={`stat-check-badge ${isUp ? 'up' : 'down'}`}>
-          {isUp ? <TrendingUp style={{ width: 10, height: 10 }} /> : <TrendingDown style={{ width: 10, height: 10 }} />}
-        </span>
-      </div>
+    <div className="card h-100 shadow-sm border-0">
+      <div className="card-body d-flex align-items-center">
+        <div className="stat-icon-wrapper">
+          {getIcon()}
+          <span className={`stat-check-badge ${isUp ? 'up' : 'down'}`}>
+            {isUp ? <TrendingUp style={{ width: 10, height: 10 }} /> : <TrendingDown style={{ width: 10, height: 10 }} />}
+          </span>
+        </div>
 
-      <div style={{ flex: 1 }}>
-        <p className="stat-title">{title}</p>
-        <h3 className="stat-value">{value}</h3>
-        <p className={`stat-trend ${isUp ? 'up' : 'down'}`}>
-          <span>{percentage}</span>
-        </p>
+        <div style={{ flex: 1 }}>
+          <p className="stat-title">{title}</p>
+          <h3 className="stat-value">{value}</h3>
+          <p className={`stat-trend ${isUp ? 'up' : 'down'}`}>
+            <span>{percentage}</span>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,27 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
 
-const pendingStatuses = new Set([
+const defaultStatusOptions = [
     "pending",
     "processing",
-    "packed",
-    "out_for_delivery",
-]);
+    "completed",
+    "cancelled",
+];
+const defaultPaymentStatusOptions = ["pending", "paid", "failed"];
 
-// Utility functions for order status handling Update -09/23/26
-const statusOptions = ["pending", "completed", "cancelled"];
-
-function normalizeStatus(status) {
+function normalizeStatus(status, allowedStatuses = defaultStatusOptions) {
     const value = String(status ?? "pending")
         .trim()
         .toLowerCase();
     const normalizedValue = value === "canceled" ? "cancelled" : value;
-    return statusOptions.includes(normalizedValue)
+
+    return allowedStatuses.includes(normalizedValue)
         ? normalizedValue
-        : "pending";
+        : allowedStatuses.includes("pending")
+          ? "pending"
+          : (allowedStatuses[0] ?? "pending");
+}
+
+function normalizePaymentStatus(
+    status,
+    allowedStatuses = defaultPaymentStatusOptions,
+) {
+    const value = String(status ?? "pending")
+        .trim()
+        .toLowerCase();
+    const normalizedValue = value === "canceled" ? "failed" : value;
+
+    return allowedStatuses.includes(normalizedValue)
+        ? normalizedValue
+        : allowedStatuses.includes("pending")
+          ? "pending"
+          : (allowedStatuses[0] ?? "pending");
 }
 
 function formatStatus(status) {
-    const normalizedStatus = normalizeStatus(status);
+    const normalizedStatus = normalizeStatus(status, defaultStatusOptions);
     const displayValue =
         normalizedStatus === "cancelled" ? "Canceled" : normalizedStatus;
 
@@ -31,21 +48,217 @@ function formatStatus(status) {
         .join(" ");
 }
 
-// End of utility functions for order status handling Update -09/23/26
+function formatPaymentStatus(status) {
+    const normalizedStatus = normalizePaymentStatus(
+        status,
+        defaultPaymentStatusOptions,
+    );
+    const displayValue =
+        normalizedStatus === "failed" ? "Failed" : normalizedStatus;
+
+    return displayValue
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+}
 
 function statusClass(status) {
-    if (status === "completed") return "text-bg-success";
-    if (status === "cancelled") return "text-bg-danger";
+    if (status === "completed") return "bg-success";
+    if (status === "cancelled") return "bg-danger";
+    if (status === "processing") return "bg-primary";
     return "text-bg-warning";
+}
+
+function OrderCard({
+    order,
+    statusOptions,
+    paymentStatusOptions,
+    updatingId,
+    onStatusChange,
+    onPaymentStatusChange,
+    paymentUpdatingId,
+}) {
+    const currentStatus = normalizeStatus(order.order_status, statusOptions);
+    const currentPaymentStatus = normalizePaymentStatus(
+        order.payment_status,
+        paymentStatusOptions,
+    );
+    const isCashOrder =
+        String(order.payment_method || "")
+            .trim()
+            .toLowerCase() === "cash";
+
+    return (
+        <article className="card border-0 shadow-sm h-100">
+            <div className="card-body d-flex flex-column gap-3">
+                <div className="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                        <p className="small text-uppercase text-body-secondary mb-1">
+                            Order
+                        </p>
+                        <h2 className="h5 mb-0">#{order.transaction_id}</h2>
+                    </div>
+                    <span className={`badge ${statusClass(currentStatus)}`}>
+                        {formatStatus(currentStatus)}
+                    </span>
+                </div>
+
+                <div className="row g-3">
+                    <div className="col-md-6">
+                        <p className="small text-uppercase text-body-secondary mb-2">
+                            Customer
+                        </p>
+                        <div className="fw-semibold">{order.customer_name}</div>
+                        <div className="small text-body-secondary">
+                            {order.customer_email}
+                        </div>
+                    </div>
+
+                    <div className="col-md-6">
+                        <p className="small text-uppercase text-body-secondary mb-2">
+                            Delivery
+                        </p>
+                        <div className="text-capitalize">
+                            {order.fulfillment_type || "pickup"}
+                        </div>
+                        {order.delivery_address && (
+                            <div className="small text-body-secondary">
+                                {order.delivery_address}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="border rounded p-3 bg-light-subtle">
+                    <p className="small text-uppercase text-body-secondary mb-2">
+                        Order details
+                    </p>
+                    {order.items?.length ? (
+                        order.items.map((item) => (
+                            <div
+                                className="d-flex justify-content-between gap-3 small mb-2"
+                                key={`${order.transaction_id}-${item.product_id}`}
+                            >
+                                <span>
+                                    {item.name} x {item.quantity}
+                                </span>
+                                <span>
+                                    ₱
+                                    {Number(
+                                        item.unit_price * item.quantity,
+                                    ).toFixed(2)}
+                                </span>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="small text-body-secondary">
+                            No items listed.
+                        </div>
+                    )}
+                </div>
+
+                <div className="row g-2 small text-body-secondary">
+                    <div className="col-sm-6">
+                        <div>Payment</div>
+                        <div className="text-capitalize text-dark">
+                            {order.payment_method || "N/A"}
+                        </div>
+                    </div>
+                    <div className="col-sm-6">
+                        <div>Payment status</div>
+                        {isCashOrder ? (
+                            <select
+                                className="form-select form-select-sm"
+                                value={currentPaymentStatus}
+                                onChange={(event) =>
+                                    onPaymentStatusChange(
+                                        order.transaction_id,
+                                        event.target.value,
+                                    )
+                                }
+                                disabled={
+                                    paymentUpdatingId === order.transaction_id
+                                }
+                                aria-label={`Change payment status for order ${order.transaction_id}`}
+                            >
+                                {paymentStatusOptions.map((status) => (
+                                    <option key={status} value={status}>
+                                        {formatPaymentStatus(status)}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div className="text-capitalize text-dark">
+                                {order.payment_status || "N/A"}
+                            </div>
+                        )}
+                    </div>
+                    <div className="col-sm-6">
+                        <div>Placed</div>
+                        <div className="text-dark">
+                            {new Date(order.created_at).toLocaleString()}
+                        </div>
+                    </div>
+                    <div className="col-sm-6">
+                        <div>Total</div>
+                        <div className="fw-bold text-dark">
+                            ₱{Number(order.total_amount).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-auto pt-3 border-top">
+                    <label
+                        className="form-label small text-body-secondary mb-2"
+                        htmlFor={`status-${order.transaction_id}`}
+                    >
+                        Update status
+                    </label>
+                    <select
+                        id={`status-${order.transaction_id}`}
+                        className="form-select"
+                        value={currentStatus}
+                        onChange={(event) =>
+                            onStatusChange(
+                                order.transaction_id,
+                                event.target.value,
+                            )
+                        }
+                        disabled={updatingId === order.transaction_id}
+                        aria-label={`Change status for order ${order.transaction_id}`}
+                    >
+                        {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                                {formatStatus(status)}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+        </article>
+    );
 }
 
 function OrderList() {
     const [orders, setOrders] = useState([]);
+    const [statusOptions, setStatusOptions] = useState(defaultStatusOptions);
     const [filter, setFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [updatingId, setUpdatingId] = useState(null);
+    const [paymentUpdatingId, setPaymentUpdatingId] = useState(null);
+
+    const filterOptions = useMemo(
+        () => [
+            { value: "all", label: "All Orders" },
+            ...statusOptions.map((status) => ({
+                value: status,
+                label: formatStatus(status),
+            })),
+        ],
+        [statusOptions],
+    );
 
     const loadOrders = () => {
         fetch("http://localhost/quickcart-api/admin_orders.php", {
@@ -56,6 +269,21 @@ function OrderList() {
                 if (!data.success) {
                     throw new Error(data.error || "Unable to load orders.");
                 }
+
+                const nextStatusOptions = Array.isArray(data.status_options)
+                    ? data.status_options.filter(Boolean)
+                    : defaultStatusOptions;
+                const nextPaymentStatusOptions = Array.isArray(
+                    data.payment_status_options,
+                )
+                    ? data.payment_status_options.filter(Boolean)
+                    : defaultPaymentStatusOptions;
+
+                setStatusOptions(
+                    nextStatusOptions.length > 0
+                        ? nextStatusOptions
+                        : defaultStatusOptions,
+                );
                 setOrders(data.orders ?? []);
             })
             .catch((requestError) => setError(requestError.message))
@@ -67,7 +295,7 @@ function OrderList() {
     }, []);
 
     const handleStatusChange = async (transactionId, nextStatus) => {
-        const normalizedStatus = normalizeStatus(nextStatus);
+        const normalizedStatus = normalizeStatus(nextStatus, statusOptions);
         if (!transactionId || !normalizedStatus) return;
 
         setUpdatingId(transactionId);
@@ -98,10 +326,21 @@ function OrderList() {
             setOrders((currentOrders) =>
                 currentOrders.map((order) =>
                     order.transaction_id === transactionId
-                        ? { ...order, order_status: normalizedStatus }
+                        ? {
+                              ...order,
+                              order_status:
+                                  data.order_status || normalizedStatus,
+                          }
                         : order,
                 ),
             );
+
+            if (
+                Array.isArray(data.status_options) &&
+                data.status_options.length
+            ) {
+                setStatusOptions(data.status_options);
+            }
         } catch (requestError) {
             setError(requestError.message);
         } finally {
@@ -109,31 +348,73 @@ function OrderList() {
         }
     };
 
+    const handlePaymentStatusChange = async (transactionId, nextStatus) => {
+        const normalizedStatus = normalizePaymentStatus(
+            nextStatus,
+            defaultPaymentStatusOptions,
+        );
+        if (!transactionId || !normalizedStatus) return;
+
+        setPaymentUpdatingId(transactionId);
+        setError("");
+
+        try {
+            const response = await fetch(
+                "http://localhost/quickcart-api/admin_orders.php",
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        action: "update_payment_status",
+                        transaction_id: transactionId,
+                        payment_status: normalizedStatus,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.error || "Unable to update payment status.",
+                );
+            }
+
+            setOrders((currentOrders) =>
+                currentOrders.map((order) =>
+                    order.transaction_id === transactionId
+                        ? {
+                              ...order,
+                              payment_status:
+                                  data.payment_status || normalizedStatus,
+                          }
+                        : order,
+                ),
+            );
+        } catch (requestError) {
+            setError(requestError.message);
+        } finally {
+            setPaymentUpdatingId(null);
+        }
+    };
+
     const visibleOrders = useMemo(() => {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
-        const filteredByStatus = (() => {
+        const filteredByStatus = orders.filter((order) => {
             if (filter === "all") {
-                return orders.filter(
-                    (order) =>
-                        order.order_status &&
-                        String(order.order_status).trim() !== "",
+                return (
+                    order.order_status &&
+                    String(order.order_status).trim() !== ""
                 );
             }
-            if (filter === "completed") {
-                return orders.filter(
-                    (order) => order.order_status === "completed",
-                );
-            }
-            if (filter === "cancelled") {
-                return orders.filter(
-                    (order) => order.order_status === "cancelled",
-                );
-            }
-            return orders.filter((order) =>
-                pendingStatuses.has(order.order_status),
+
+            return (
+                normalizeStatus(order.order_status, statusOptions) === filter
             );
-        })();
+        });
 
         if (!normalizedSearch) {
             return filteredByStatus;
@@ -147,7 +428,7 @@ function OrderList() {
                 customerEmail.includes(normalizedSearch)
             );
         });
-    }, [filter, orders, searchTerm]);
+    }, [filter, orders, searchTerm, statusOptions]);
 
     return (
         <div className="container py-4">
@@ -157,22 +438,18 @@ function OrderList() {
                 </p>
                 <h1 className="h2 mb-2">Order List</h1>
                 <p className="text-body-secondary mb-0">
-                    Review customer orders and fulfillment status.
+                    Review customer orders and update the fulfillment status for
+                    each order.
                 </p>
             </div>
 
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div
-                    className="btn-group"
+                    className="btn-group flex-wrap"
                     role="group"
                     aria-label="Order status filter"
                 >
-                    {[
-                        ["all", "All Orders"],
-                        ["pending", "Pending"],
-                        ["completed", "Completed"],
-                        ["cancelled", "Cancelled"],
-                    ].map(([value, label]) => (
+                    {filterOptions.map(({ value, label }) => (
                         <button
                             className={`btn ${filter === value ? "btn-success" : "btn-outline-success"}`}
                             key={value}
@@ -188,7 +465,7 @@ function OrderList() {
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="Search by customer name"
+                        placeholder="Search by customer name or email"
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                     />
@@ -201,101 +478,29 @@ function OrderList() {
             )}
             {!loading && !error && visibleOrders.length === 0 && (
                 <div className="alert alert-light border">
-                    No {filter} orders found.
+                    No {filter === "all" ? "orders" : formatStatus(filter)}{" "}
+                    orders found.
                 </div>
             )}
             {!loading && !error && visibleOrders.length > 0 && (
-                <div className="table-responsive shadow-sm admin-order-table-wrap">
-                    <table className="table table-hover align-middle mb-0 admin-order-table">
-                        <thead>
-                            <tr>
-                                <th>Order</th>
-                                <th>Customer</th>
-                                <th>Fulfillment</th>
-                                <th>Payment</th>
-                                <th>Status</th>
-                                <th>Total</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {visibleOrders.map((order) => (
-                                <tr key={order.transaction_id}>
-                                    <td>
-                                        <strong>#{order.transaction_id}</strong>
-                                        <div className="small text-body-secondary">
-                                            {order.items?.length ?? 0} item(s)
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>{order.customer_name}</div>
-                                        <small className="text-body-secondary">
-                                            {order.customer_email}
-                                        </small>
-                                    </td>
-                                    <td className="text-capitalize">
-                                        {order.fulfillment_type}
-                                        {order.delivery_address && (
-                                            <div className="small text-body-secondary">
-                                                {order.delivery_address}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="text-capitalize">
-                                        {order.payment_method}
-                                        <div className="small text-body-secondary">
-                                            {order.payment_status}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="d-flex align-items-center gap-2">
-                                            <span
-                                                className={`badge ${statusClass(order.order_status)}`}
-                                            >
-                                                {formatStatus(
-                                                    order.order_status,
-                                                )}
-                                            </span>
-                                            <select
-                                                className="form-select form-select-sm w-auto"
-                                                value={normalizeStatus(
-                                                    order.order_status,
-                                                )}
-                                                onChange={(event) =>
-                                                    handleStatusChange(
-                                                        order.transaction_id,
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    updatingId ===
-                                                    order.transaction_id
-                                                }
-                                                aria-label={`Change status for order ${order.transaction_id}`}
-                                            >
-                                                {statusOptions.map((status) => (
-                                                    <option
-                                                        key={status}
-                                                        value={status}
-                                                    >
-                                                        {formatStatus(status)}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        ₱{Number(order.total_amount).toFixed(2)}
-                                    </td>
-                                    <td>
-                                        {new Date(
-                                            order.created_at,
-                                        ).toLocaleDateString()}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="row g-4">
+                    {visibleOrders.map((order) => (
+                        <div className="col-xl-6" key={order.transaction_id}>
+                            <OrderCard
+                                order={order}
+                                statusOptions={statusOptions}
+                                paymentStatusOptions={
+                                    defaultPaymentStatusOptions
+                                }
+                                updatingId={updatingId}
+                                onStatusChange={handleStatusChange}
+                                onPaymentStatusChange={
+                                    handlePaymentStatusChange
+                                }
+                                paymentUpdatingId={paymentUpdatingId}
+                            />
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

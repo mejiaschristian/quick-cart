@@ -26,6 +26,11 @@ function OrderCard({ order, onRetryPayment, onCancelOrder }) {
         order.payment_method === "payrex" &&
         order.payment_status === "pending";
 
+    const canActOnPendingCash =
+        order.order_status === "pending" &&
+        order.payment_method === "cash" &&
+        order.payment_status === "pending";
+
     return (
         <article className="card border-0 shadow-sm h-100">
             <div className="card-body">
@@ -95,13 +100,15 @@ function OrderCard({ order, onRetryPayment, onCancelOrder }) {
                         >
                             Proceed payment
                         </button>
-                        <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => onCancelOrder?.(order)}
-                        >
-                            Cancel order
-                        </button>
+                        {canActOnPendingCash && (
+                            <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm"
+                                onClick={() => onCancelOrder?.(order)}
+                            >
+                                Cancel order
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

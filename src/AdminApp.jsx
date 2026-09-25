@@ -127,7 +127,7 @@ export default function AdminApp() {
                             }
                         >
                             <item.icon className="nav-icon" />
-                            {!isCollapsed && <span>{item.name}</span>}
+                            {!isCollapsed && <span className="mx-2">{item.name}</span>}
                         </NavLink>
                     ))}
                 </nav>

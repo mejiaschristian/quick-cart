@@ -1,11 +1,8 @@
-
-
-
 /* Sidebar Styling */
 /* Update your existing .sidebar class to add sticky positioning and transition */
 .sidebar {
-  width: 250px;
-  min-width: 250px;
+  width: 200px;
+  min-width: 200px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -106,6 +103,10 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
+.nav-item.active {
+    background-color: #e3e3e3;
+}
+
 .nav-item.active .nav-icon {
   color: #059669;
 }
@@ -130,7 +131,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('public/c1.png');
+  background-image: url('/c1.png');
   background-size: cover;
   background-position: center 40%; /* Crops out top lights */
   background-repeat: no-repeat;
@@ -142,26 +143,9 @@
 }
 
 /* Ensure cards render above the image layer */
-.stats-grid, 
-.dashboard-body {
+.background-image-container > .row {
   position: relative;
   z-index: 2;
-}
-
-/* Stat Cards Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-}
-
-.stat-card {
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .stat-icon-wrapper {
@@ -220,34 +204,7 @@
   margin-left: 4px;
 }
 
-/* Lower Widget Grid */
-.dashboard-body {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.dashboard-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-}
-
-@media (max-width: 1024px) {
-  .dashboard-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.widget-card {
-  background-color: #ffffff;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
+/* Lower Widget Grid — now handled by Bootstrap's row/col grid in Dashboard.jsx */
 
 .widget-header {
   display: flex;
